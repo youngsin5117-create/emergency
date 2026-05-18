@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>25병동 응급 시뮬레이션</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#F0F6FC;color:#1a2e44;min-height:100vh}
+.game{max-width:440px;margin:0 auto;padding:12px;padding-bottom:40px}
+.topbar{background:#1F4E79;border-radius:12px;padding:13px 16px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.topbar h1{color:#fff;font-size:15px;font-weight:700;display:flex;align-items:center;gap:7px}
+.score-box{display:flex;gap:8px;align-items:center}
+.score-pill{background:rgba(255,255,255,.18);color:#fff;font-size:12px;font-weight:700;padding:4px 11px;border-radius:20px}
+.life-box{display:flex;gap:2px}
+.life{font-size:15px}
+.case-card{background:#fff;border-radius:12px;border:1px solid #E2E8F0;margin-bottom:10px;overflow:hidden}
+.case-hdr{padding:11px 14px;display:flex;align-items:center;justify-content:space-between}
+.case-hdr-title{font-size:14px;font-weight:700;color:#1a2e44}
+.case-tag{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.patient-strip{background:#F8FAFD;padding:9px 14px;border-bottom:1px solid #F1F5F9}
+.pt-row{display:flex;gap:14px;flex-wrap:wrap}
+.pt-item{font-size:11px;color:#64748B}
+.pt-item strong{color:#1a2e44;font-weight:700}
+.monitor-bg{background:#080808;border-radius:10px;margin:10px 12px 6px;padding:11px 13px}
+.monitor-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px}
+.vital-box{background:#111;border-radius:6px;padding:6px 8px}
+.vital-label{font-size:9px;color:#666;text-transform:uppercase;letter-spacing:.6px;margin-bottom:2px}
+.vital-value{font-size:20px;font-weight:800;line-height:1;letter-spacing:-0.5px}
+.vital-unit{font-size:10px;font-weight:400;margin-left:2px}
+.vn{color:#4CAF50}.vw{color:#FF9800}.vd{color:#F44336}
+.ecg-area{background:#080808;border-radius:7px;margin:0 12px 10px;padding:8px 10px}
+.ecg-label{font-size:9px;color:#444;letter-spacing:.5px;margin-bottom:5px}
+canvas{display:block;width:100%;height:52px}
+.situation-box{padding:12px 14px;border-top:1px solid #F1F5F9}
+.situation-box p{font-size:13px;line-height:1.65;color:#2C3A4A}
+.nurse-says{background:#EFF6FF;border-left:3px solid #2E75B6;border-radius:0 6px 6px 0;padding:8px 11px;margin-top:8px;font-size:12px;color:#1e40af;font-style:italic;line-height:1.5}
+.choices{padding:0 14px 14px}
+.choices-title{font-size:11px;font-weight:700;color:#94A3B8;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+.choice-btn{width:100%;text-align:left;background:#fff;border:1.5px solid #E2E8F0;border-radius:9px;padding:11px 12px;font-size:13px;color:#1a2e44;cursor:pointer;margin-bottom:7px;font-family:inherit;display:flex;align-items:flex-start;gap:9px;line-height:1.45;transition:border-color .15s,background .15s}
+.choice-btn:hover{border-color:#94A3B8;background:#F8FAFD}
+.choice-btn:active{transform:scale(.99)}
+.choice-no{font-size:11px;font-weight:700;color:#94A3B8;min-width:18px;padding-top:1px;flex-shrink:0}
+.choice-btn.correct{background:#F0FDF4;border-color:#4CAF50;color:#14532d}
+.choice-btn.correct .choice-no{color:#4CAF50}
+.choice-btn.wrong{background:#FFF1F2;border-color:#F44336;color:#7f1d1d}
+.choice-btn.wrong .choice-no{color:#F44336}
+.choice-btn.missed{background:#FFFBEB;border-color:#F59E0B;color:#78350f}
+.choice-btn:disabled{cursor:default}
+.feedback-box{margin:4px 14px 14px;border-radius:10px;padding:13px 14px}
+.feedback-box.correct{background:#F0FDF4;border:1.5px solid #4CAF50}
+.feedback-box.wrong{background:#FFF1F2;border:1.5px solid #F44336}
+.feedback-title{font-size:13px;font-weight:700;margin-bottom:7px;display:flex;align-items:center;gap:6px}
+.feedback-body{font-size:12.5px;line-height:1.65;color:#2C3A4A}
+.feedback-key{font-size:11.5px;font-weight:600;margin-top:9px;padding-top:9px;border-top:1px solid rgba(0,0,0,.08);color:#374151;line-height:1.5}
+.next-btn{background:#1F75FE;color:#fff;border:none;border-radius:9px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;display:block;width:calc(100% - 28px);margin:0 14px 14px}
+.next-btn:hover{background:#1558C0}
+.progress-bar{height:5px;background:#E2E8F0;border-radius:3px;margin:0 14px 10px;overflow:hidden}
+.progress-fill{height:100%;background:#1F75FE;border-radius:3px;transition:width .5s ease}
+.timer-row{display:flex;align-items:center;justify-content:space-between;padding:0 14px;margin-bottom:9px}
+.timer-label{font-size:11px;color:#64748B;font-weight:600}
+.timer-val{font-size:14px;font-weight:800;color:#1F75FE;font-variant-numeric:tabular-nums}
+.timer-val.urgent{color:#F44336;animation:pulse .6s infinite alternate}
+@keyframes pulse{from{opacity:1}to{opacity:.4}}
+.intro-screen,.result-screen{text-align:center;padding:20px 14px}
+.intro-screen h2{font-size:21px;font-weight:800;color:#1a2e44;margin-bottom:10px}
+.intro-screen p{font-size:13px;color:#64748B;line-height:1.65;margin-bottom:18px}
+.case-list{background:#F8FAFD;border-radius:10px;padding:12px 14px;margin-bottom:18px;text-align:left;border:1px solid #E2E8F0}
+.case-list-item{font-size:12px;padding:6px 0;border-bottom:1px solid #F1F5F9;display:flex;align-items:center;gap:8px;color:#374151}
+.case-list-item:last-child{border-bottom:none}
+.case-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.case-idx{font-weight:700;font-size:11px;color:#64748B;min-width:52px}
+.start-btn{width:100%;background:#1F4E79;color:#fff;border:none;border-radius:11px;padding:15px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit}
+.start-btn:hover{background:#163A5E}
+.result-score{font-size:52px;font-weight:900;color:#1F75FE;line-height:1;letter-spacing:-1px}
+.result-label{font-size:13px;color:#64748B;margin:4px 0 14px}
+.result-grade{font-size:26px;font-weight:800;margin-bottom:8px}
+.result-msg{font-size:13px;color:#64748B;line-height:1.65;margin-bottom:18px}
+.result-breakdown{background:#F8FAFD;border-radius:10px;padding:14px;margin-bottom:16px;text-align:left;border:1px solid #E2E8F0}
+.breakdown-hd{font-size:11px;font-weight:700;color:#94A3B8;margin-bottom:9px;text-transform:uppercase;letter-spacing:.5px}
+.breakdown-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:12px;border-bottom:1px solid #F1F5F9;gap:8px}
+.breakdown-row:last-child{border-bottom:none}
+.breakdown-case{color:#374151;flex:1;line-height:1.4}
+.breakdown-result{font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.breakdown-key{font-size:10px;color:#94A3B8;margin-top:2px;line-height:1.4}
+.ok{background:#F0FDF4;color:#14532d}
+.fail{background:#FFF1F2;color:#7f1d1d}
+.skip{background:#F1F5F9;color:#475569}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.stat-box{background:#F8FAFD;border-radius:9px;padding:12px;text-align:center;border:1px solid #E2E8F0}
+.stat-n{font-size:24px;font-weight:800;line-height:1}
+.stat-l{font-size:11px;color:#64748B;margin-top:3px}
+.restart-btn{width:100%;background:#1F4E79;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit}
+.restart-btn:hover{background:#163A5E}
+.timeout-badge{background:#FFFBEB;border:1px solid #F59E0B;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;color:#92400E;margin-bottom:8px;display:inline-block}
+</style>
+</head>
+<body>
+<div class="game">
+  <div class="topbar">
+    <h1><i class="ti ti-emergency-bed" aria-hidden="true" style="font-size:18px"></i>25병동 응급 시뮬레이션</h1>
+    <div class="score-box">
+      <div class="score-pill" id="score-display">0점</div>
+      <div class="life-box" id="life-display"></div>
+    </div>
+  </div>
+  <div id="main"></div>
+</div>
+
+<script>
+var CASES=[
+{id:0,title:"심실세동 발생",tag:"응급 ★★★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"김○○",age:"68세 남",room:"301호",dx:"NSTEMI PCI 후 2일차"},
+ vitals:[{l:"HR",v:"--",u:"/분",c:"vd"},{l:"BP",v:"측정불가",u:"",c:"vd"},{l:"SpO₂",v:"82",u:"%",c:"vd"},{l:"BT",v:"36.8",u:"℃",c:"vn"}],
+ ecg:"vf",
+ situation:"야간 순회 중 301호 모니터에서 알람이 울렸다. 달려가 보니 환자가 반응이 없고 모니터에 혼돈된 파형이 보인다.",
+ nurse:null,
+ choices:[
+   {t:"즉시 코드 블루 선언 + CPR 시작 + 제세동기 요청",ok:true},
+   {t:"담당의에게 전화해서 지시를 기다린다",ok:false},
+   {t:"12유도 심전도를 먼저 찍고 분석한다",ok:false},
+   {t:"산소 마스크를 적용하고 활력징후를 재측정한다",ok:false}
+ ],
+ okFb:"완벽합니다! VF = 심정지. 1분 지연마다 생존율 7~10% 감소. 코드 선언 → CPR → 제세동이 최우선입니다.",
+ failFb:"VF는 즉각 CPR과 제세동이 필요합니다. 전화·심전도 먼저는 골든타임 낭비입니다.",
+ key:"VF: 코드 블루 → CPR(100~120회/분, 5~6cm) → AED → 2분마다 제세동 반복"},
+{id:1,title:"패혈증 의심 발열",tag:"응급 ★★★★",tagColor:"#4c1d95",tagBg:"#F5F3FF",
+ patient:{name:"홍○○",age:"71세 여",room:"311호",dx:"요로감염 치료 중"},
+ vitals:[{l:"BT",v:"39.4",u:"℃",c:"vd"},{l:"BP",v:"86/52",u:"mmHg",c:"vd"},{l:"HR",v:"118",u:"/분",c:"vw"},{l:"SpO₂",v:"93",u:"%",c:"vw"}],
+ ecg:"tachy",
+ situation:"오전 3시 30분, 고열·오한·핍뇨(2시간 15mL). qSOFA 3점. 혈압이 빠르게 떨어지고 있다.",
+ nurse:"\"체온 39.4도이고 혈압이 86/52로 많이 떨어졌어요. 소변도 거의 안 나오고 있어요.\"",
+ choices:[
+   {t:"혈액 배양 2세트 채취 → 항생제 투여 → Lactate 측정 → 수액 30mL/kg 급속 정주",ok:true},
+   {t:"해열제 투여 후 30분 뒤 재측정",ok:false},
+   {t:"혈액 검사 결과 나오면 대응",ok:false},
+   {t:"산소 투여만 하고 아침에 주치의 보고",ok:false}
+ ],
+ okFb:"완벽합니다! Sepsis 1-hour Bundle 수행. 혈배양은 반드시 항생제 투여 전에 채취!",
+ failFb:"패혈증은 즉각 1-hour Bundle 필요. 해열제만 주거나 기다리면 패혈성 쇼크로 진행됩니다.",
+ key:"Sepsis Bundle: ①혈배양(항생제 전) ②항생제 1시간 내 ③Lactate 측정 ④수액 30mL/kg"},
+{id:2,title:"수혈 중 발열·오한",tag:"주의 ★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"김○○",age:"58세 남",room:"307호",dx:"위암 수술 POD#2, pRBC 수혈 중"},
+ vitals:[{l:"BT",v:"38.7",u:"℃",c:"vd"},{l:"BP",v:"108/68",u:"mmHg",c:"vw"},{l:"HR",v:"106",u:"/분",c:"vw"},{l:"SpO₂",v:"96",u:"%",c:"vn"}],
+ ecg:"tachy",
+ situation:"수혈 시작 20분 후, 80mL 주입. '몸이 떨리고 등이 아프다'고 호소한다.",
+ nurse:"\"수혈 부작용 같아요. 어떻게 해야 하나요?\"",
+ choices:[
+   {t:"수혈 즉시 중단 → 생리식염수 IV 유지 → 혈액백 보존 → 의사 보고 → 소변 색 확인",ok:true},
+   {t:"수혈 속도만 줄이고 경과 관찰",ok:false},
+   {t:"해열제 투여 후 수혈 계속 진행",ok:false},
+   {t:"수혈 백을 바꾸고 새 혈액으로 교체",ok:false}
+ ],
+ okFb:"정확합니다! 혈액백 보존은 필수 — 혈액은행에서 원인 분석에 필요합니다.",
+ failFb:"수혈 부작용 시 즉시 중단이 최우선! 속도만 줄이거나 계속 투여하면 급성 용혈 반응으로 진행됩니다.",
+ key:"수혈 반응: ①즉시 중단 ②생리식염수 유지(별도 라인) ③혈액백 보존 ④혈액은행 보고 ⑤소변 색(혈뇨=용혈)"},
+{id:3,title:"낙상 후 의식 저하",tag:"응급 ★★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"박○○",age:"67세 남",room:"309호",dx:"Warfarin 복용 중(INR 2.8)"},
+ vitals:[{l:"BP",v:"168/96",u:"mmHg",c:"vd"},{l:"HR",v:"58",u:"/분",c:"vw"},{l:"GCS",v:"11",u:"점",c:"vd"},{l:"동공",v:"불균등",u:"",c:"vd"}],
+ ecg:"brady",
+ situation:"화장실 낙상 후 우측 측두부 혈종 발견. 의식이 점점 저하되고 있다. 항응고제 복용 중.",
+ nurse:"\"아까보다 더 처진 것 같아요. 동공도 좌우가 달라요.\"",
+ choices:[
+   {t:"응급 의사 콜 → 두부 CT 오더 → 응급 혈액검사(INR) → Vit K + FFP 준비",ok:true},
+   {t:"낙상 부위 처치 후 아침에 보고",ok:false},
+   {t:"활력징후 30분마다 모니터링",ok:false},
+   {t:"진통제 투여 후 안정시키고 관찰",ok:false}
+ ],
+ okFb:"정확합니다! 동공 불균등+의식 저하+항응고제 = 두개내출혈 응급. Cushing Triad 징후도 보입니다.",
+ failFb:"낙상+의식 저하+항응고제 = 두개내출혈 응급! 아침까지 기다리면 안 됩니다.",
+ key:"Cushing Triad: 고혈압+서맥+불규칙 호흡 = 뇌압 상승. 동공 불균등 → 즉각 신경외과 콜"},
+{id:4,title:"심방세동 신규 발생",tag:"주의 ★★★",tagColor:"#1e1b4b",tagBg:"#EEF2FF",
+ patient:{name:"정○○",age:"69세 남",room:"308호",dx:"고혈압 입원, 음주력"},
+ vitals:[{l:"HR",v:"138",u:"/분",c:"vd"},{l:"BP",v:"148/92",u:"mmHg",c:"vw"},{l:"SpO₂",v:"96",u:"%",c:"vn"},{l:"리듬",v:"불규칙",u:"",c:"vw"}],
+ ecg:"afib",
+ situation:"오전 2시 40분 모니터 알람. P파 소실 + 불규칙 RR + f파. 음주 후 입원한 환자.",
+ nurse:"\"P파가 없고 리듬이 불규칙해요. 심방세동인 것 같아요.\"",
+ choices:[
+   {t:"12유도 심전도 → K+·Mg2+·TSH·Troponin 채혈 → 심박수 조절 약물 오더 → 심장내과 협진",ok:true},
+   {t:"아스피린 투여 후 경과 관찰",ok:false},
+   {t:"12유도 심전도만 찍고 아침을 기다린다",ok:false},
+   {t:"즉각 전기적 심장율동전환 시행",ok:false}
+ ],
+ okFb:"정확합니다! Holiday Heart Syndrome 가능성 있는 신규 AFib. 우선 검사·약물 치료가 먼저입니다.",
+ failFb:"AFib RVR은 즉각 평가와 심박수 조절 필요. Cardioversion은 의사가 판단할 사항입니다.",
+ key:"신규 AFib: ①12유도 ECG ②전해질·TSH ③심박수 조절(Diltiazem/Metoprolol) ④CHA₂DS₂-VASc 점수"},
+{id:5,title:"TAVI 후 완전 방실차단",tag:"응급 ★★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"윤○○",age:"82세 여",room:"301호",dx:"TAVI 시술 후 6시간"},
+ vitals:[{l:"HR",v:"32",u:"/분",c:"vd"},{l:"BP",v:"82/54",u:"mmHg",c:"vd"},{l:"SpO₂",v:"92",u:"%",c:"vw"},{l:"의식",v:"실신 후",u:"",c:"vw"}],
+ ecg:"completeavb",
+ situation:"TAVI 6시간 후 갑자기 실신 후 회복. 모니터에서 P파와 QRS가 완전히 분리. HR 32회/분.",
+ nurse:"\"P파랑 QRS가 따로 움직이는 것 같아요. 완전 방실차단 아닌가요?\"",
+ choices:[
+   {t:"즉각 의사 응급 콜 → 경피적 임시 페이싱 준비 → Atropine IV → CCU 전동 준비",ok:true},
+   {t:"산소만 투여하고 30분 후 재측정",ok:false},
+   {t:"수액 500mL 급속 투여",ok:false},
+   {t:"12유도 심전도만 찍고 보고",ok:false}
+ ],
+ okFb:"정확합니다! TAVI 후 완전 방실차단은 발생률 10~25%. 즉각 임시 페이싱이 필요합니다.",
+ failFb:"완전 방실차단+혈역학 불안정 = 임시 페이싱 응급! 산소·수액만으로는 해결 안 됩니다.",
+ key:"TAVI 후 AVB: 경피적 페이싱 → 경정맥 임시 페이싱 → 영구 심박동기(PPM) 고려"},
+{id:6,title:"요정체 — 도뇨관 제거 후",tag:"주의 ★★",tagColor:"#1e3a5f",tagBg:"#EFF6FF",
+ patient:{name:"강○○",age:"74세 남",room:"315호",dx:"직장암 수술 POD#3, 전립선비대증"},
+ vitals:[{l:"잔뇨",v:"520",u:"mL",c:"vd"},{l:"BP",v:"138/82",u:"mmHg",c:"vn"},{l:"HR",v:"88",u:"/분",c:"vn"},{l:"배뇨",v:"7h 0mL",u:"",c:"vd"}],
+ ecg:"normal",
+ situation:"도뇨관 제거 7시간 후 자연 배뇨 없음. '배가 빵빵하고 소변이 마렵지만 안 나온다'. 방광 BladderScan 520mL.",
+ nurse:"\"BladderScan 재봤는데 520mL예요. 어떻게 해야 하나요?\"",
+ choices:[
+   {t:"단순 도뇨 또는 유치도뇨관 재삽입 오더 → Tamsulosin 검토 → Opioid PCA 감량 검토",ok:true},
+   {t:"물을 더 마시도록 하고 1시간 기다린다",ok:false},
+   {t:"방광 초음파를 한 번 더 재측정",ok:false},
+   {t:"진통제 추가 후 경과 관찰",ok:false}
+ ],
+ okFb:"정확합니다! 잔뇨 300mL 이상 = 요정체. 즉각 도뇨 + 알파차단제 + PCA 감량 검토.",
+ failFb:"잔뇨 520mL = 방광 과팽창 위험. 더 기다리면 방광 손상 가능. 즉각 도뇨 필요.",
+ key:"요정체 기준 잔뇨 300mL 이상. BPH+경막외마취+오피오이드 = 3대 위험인자. 500mL 이상 한번에 배출 금지"},
+{id:7,title:"장마비 의심 — 수술 후",tag:"주의 ★★★",tagColor:"#14532d",tagBg:"#F0FDF4",
+ patient:{name:"이○○",age:"66세 여",room:"316호",dx:"대장암 개복수술 POD#4"},
+ vitals:[{l:"BT",v:"37.6",u:"℃",c:"vw"},{l:"BP",v:"142/88",u:"mmHg",c:"vw"},{l:"HR",v:"96",u:"/분",c:"vw"},{l:"장음",v:"소실",u:"",c:"vd"}],
+ ecg:"normal",
+ situation:"POD#4, 복부 팽만 심화 + 구토 3회. 배변·방귀 없음. 복부 둘레 6cm 증가. '배가 터질 것 같다'.",
+ nurse:"\"사방 다 들어봤는데 장음이 전혀 안 들려요. 배도 많이 부풀었고요.\"",
+ choices:[
+   {t:"NPO + 비위관(L-tube) 삽입으로 감압 → 복부 X선·CT → 전해질 검사 → Opioid PCA 감량",ok:true},
+   {t:"식이를 죽에서 미음으로 바꾸고 경과 관찰",ok:false},
+   {t:"걷기 운동만 시킨다",ok:false},
+   {t:"진통제 추가 후 아침에 외과 진찰",ok:false}
+ ],
+ okFb:"정확합니다! NPO + L-tube 감압이 핵심. Opioid는 장 운동 억제 → 최소화 필요.",
+ failFb:"장음 소실+복부 팽만+무배변 = 장마비. 식이 변경·운동만으로는 부족. 즉각 감압 처치 필요.",
+ key:"수술 후 장마비: NPO+L-tube 감압+조기보행. 장 회복 순서: 소장(POD1-2)→위(POD2-3)→대장(POD3-5)"}
+];
+
+var cur=0, score=0, lives=3, answered=false, results=[], timerInt=null, timeLeft=60;
+
+function renderLives(){
+  document.getElementById('life-display').innerHTML=
+    Array.from({length:3},function(_,i){return '<span class="life">'+(i<lives?'❤':'🖤')+'</span>';}).join('');
+}
+
+function drawECG(canvas, type){
+  if(!canvas) return;
+  var w=canvas.width=canvas.parentElement.offsetWidth-20;
+  var h=canvas.height=52;
+  var ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,w,h);
+  var mid=h/2;
+  ctx.strokeStyle=type==='vf'?'#FF5252':type==='completeavb'?'#FF9800':'#00E676';
+  ctx.lineWidth=1.6; ctx.lineJoin='round'; ctx.lineCap='round';
+  ctx.beginPath();
+  if(type==='normal'){
+    ctx.moveTo(0,mid); var x=0;
+    function nBeat(sx){ctx.lineTo(sx,mid);ctx.lineTo(sx+8,mid);ctx.lineTo(sx+10,mid-4);ctx.lineTo(sx+12,mid);ctx.lineTo(sx+13,mid);ctx.lineTo(sx+14,mid-2);ctx.lineTo(sx+16,mid+28);ctx.lineTo(sx+17,mid-18);ctx.lineTo(sx+18,mid+6);ctx.lineTo(sx+19,mid);ctx.lineTo(sx+22,mid);ctx.lineTo(sx+24,mid-8);ctx.lineTo(sx+26,mid-8);ctx.lineTo(sx+28,mid);ctx.lineTo(sx+44,mid);}
+    while(x<w){nBeat(x);x+=44;}
+  } else if(type==='vf'){
+    ctx.moveTo(0,mid);
+    for(var x=0;x<w;x+=2) ctx.lineTo(x,(Math.sin(x*.3+Math.random()*.8)*(h*.42))+(Math.random()-.5)*h*.22+mid);
+  } else if(type==='afib'){
+    ctx.moveTo(0,mid); var x=0; var gaps=[28,22,34,19,26,30]; var gi=0;
+    while(x<w){var g=gaps[gi%gaps.length];for(var j=0;j<g;j++)ctx.lineTo(x+j,Math.sin(j*.9+gi)*h*.1+(Math.random()-.5)*h*.06+mid);var qx=x+g;if(qx+14<w){ctx.lineTo(qx,mid);ctx.lineTo(qx+1,mid-3);ctx.lineTo(qx+2,mid+24);ctx.lineTo(qx+3,mid-14);ctx.lineTo(qx+4,mid+4);ctx.lineTo(qx+5,mid);ctx.lineTo(qx+9,mid-6);ctx.lineTo(qx+12,mid-6);ctx.lineTo(qx+14,mid);}x+=g+14;gi++;}
+  } else if(type==='tachy'){
+    ctx.moveTo(0,mid); var x=0;
+    function tBeat(sx){ctx.lineTo(sx,mid);ctx.lineTo(sx+4,mid);ctx.lineTo(sx+5,mid-2);ctx.lineTo(sx+7,mid+22);ctx.lineTo(sx+8,mid-14);ctx.lineTo(sx+9,mid+4);ctx.lineTo(sx+10,mid);ctx.lineTo(sx+13,mid-6);ctx.lineTo(sx+15,mid-6);ctx.lineTo(sx+16,mid);ctx.lineTo(sx+26,mid);}
+    while(x<w){tBeat(x);x+=26;}
+  } else if(type==='brady'){
+    ctx.moveTo(0,mid); var x=0;
+    function bBeat(sx){ctx.lineTo(sx,mid);ctx.lineTo(sx+6,mid);ctx.lineTo(sx+8,mid-4);ctx.lineTo(sx+10,mid);ctx.lineTo(sx+11,mid);ctx.lineTo(sx+12,mid-2);ctx.lineTo(sx+14,mid+26);ctx.lineTo(sx+15,mid-18);ctx.lineTo(sx+16,mid+6);ctx.lineTo(sx+17,mid);ctx.lineTo(sx+20,mid);ctx.lineTo(sx+22,mid-8);ctx.lineTo(sx+25,mid-8);ctx.lineTo(sx+27,mid);ctx.lineTo(sx+72,mid);}
+    while(x<w){bBeat(x);x+=72;}
+  } else if(type==='completeavb'){
+    ctx.moveTo(0,mid); var x=0; var px=0; var qnext=28;
+    while(x<w){
+      if(Math.abs(x-px)<2&&px<w){ctx.lineTo(px,mid);ctx.lineTo(px+3,mid-6);ctx.lineTo(px+5,mid-7);ctx.lineTo(px+7,mid-6);ctx.lineTo(px+8,mid);ctx.lineTo(px+14,mid);px+=14;x=px;}
+      else if(x>=qnext&&qnext<w-20){ctx.lineTo(qnext,mid);ctx.lineTo(qnext+2,mid+3);ctx.lineTo(qnext+4,mid+20);ctx.lineTo(qnext+5,mid-14);ctx.lineTo(qnext+7,mid+4);ctx.lineTo(qnext+8,mid);ctx.lineTo(qnext+11,mid-6);ctx.lineTo(qnext+16,mid-6);ctx.lineTo(qnext+18,mid);ctx.lineTo(qnext+62,mid);x=qnext+62;qnext+=62;}
+      else{ctx.lineTo(x,mid);x+=14;}
+    }
+  }
+  ctx.stroke();
+}
+
+function startTimer(){
+  clearInterval(timerInt); timeLeft=60;
+  timerInt=setInterval(function(){
+    timeLeft--;
+    var el=document.getElementById('timer-val');
+    if(el){el.textContent=timeLeft+'초';el.className='timer-val'+(timeLeft<=10?' urgent':'');}
+    if(timeLeft<=0){clearInterval(timerInt);if(!answered)autoFail();}
+  },1000);
+}
+
+function autoFail(){
+  answered=true; lives=Math.max(0,lives-1); renderLives();
+  results.push({i:cur,ok:false,timeout:true});
+  var c=CASES[cur];
+  document.querySelectorAll('.choice-btn').forEach(function(b,i){b.disabled=true;if(c.choices[i].ok)b.classList.add('missed');});
+  showFeedback(false,c,true);
+  if(lives<=0){clearInterval(timerInt);setTimeout(showResult,2200);}
+}
+
+function showIntro(){
+  document.getElementById('score-display').textContent='0점';
+  document.getElementById('main').innerHTML=
+    '<div class="intro-screen">'+
+    '<div style="font-size:48px;margin-bottom:12px;color:#1F75FE"><i class="ti ti-stethoscope" aria-hidden="true"></i></div>'+
+    '<h2>25병동 응급 시뮬레이션</h2>'+
+    '<p>실제 임상 상황을 시뮬레이션합니다.<br>올바른 대응을 선택하세요!<br>오답 시 하트 감소 / 60초 타임오버 시 자동 실패</p>'+
+    '<div class="case-list">'+
+    CASES.map(function(c,i){return '<div class="case-list-item"><div class="case-dot" style="background:'+c.tagColor+'"></div><span class="case-idx">Case '+(i+1)+'</span><span>'+c.title+'</span></div>';}).join('')+
+    '</div>'+
+    '<button class="start-btn" onclick="startGame()"><i class="ti ti-player-play" aria-hidden="true" style="font-size:17px;vertical-align:-3px;margin-right:7px"></i>시뮬레이션 시작</button>'+
+    '</div>';
+}
+
+function startGame(){cur=0;score=0;lives=3;results=[];renderLives();showCase();}
+
+function showCase(){
+  if(cur>=CASES.length){clearInterval(timerInt);showResult();return;}
+  answered=false;
+  var c=CASES[cur];
+  var pct=Math.round(cur/CASES.length*100);
+  document.getElementById('score-display').textContent=score+'점';
+  document.getElementById('main').innerHTML=
+    '<div class="progress-bar"><div class="progress-fill" style="width:'+pct+'%"></div></div>'+
+    '<div class="timer-row"><span class="timer-label">Case '+(cur+1)+' / '+CASES.length+'</span><span class="timer-val" id="timer-val">60초</span></div>'+
+    '<div class="case-card">'+
+    '<div class="case-hdr"><span class="case-hdr-title">'+c.title+'</span><span class="case-tag" style="color:'+c.tagColor+';background:'+c.tagBg+'">'+c.tag+'</span></div>'+
+    '<div class="patient-strip"><div class="pt-row"><div class="pt-item"><strong>'+c.patient.name+'</strong> '+c.patient.age+'</div><div class="pt-item"><strong>'+c.patient.room+'</strong></div><div class="pt-item">'+c.patient.dx+'</div></div></div>'+
+    '<div class="monitor-bg"><div class="monitor-row">'+
+    c.vitals.map(function(v){return '<div class="vital-box"><div class="vital-label">'+v.l+'</div><div class="vital-value '+v.c+'">'+v.v+'<span class="vital-unit">'+v.u+'</span></div></div>';}).join('')+
+    '</div></div>'+
+    '<div class="ecg-area"><div class="ecg-label">ECG MONITOR</div><canvas id="ecg-cv"></canvas></div>'+
+    '<div class="situation-box"><p>'+c.situation+'</p>'+(c.nurse?'<div class="nurse-says">'+c.nurse+'</div>':'')+'</div>'+
+    '<div class="choices"><div class="choices-title">최선의 대응은?</div>'+
+    c.choices.map(function(ch,i){return '<button class="choice-btn" onclick="pick('+i+')"><span class="choice-no">'+(i+1)+'</span><span>'+ch.t+'</span></button>';}).join('')+
+    '</div></div>';
+  setTimeout(function(){var cv=document.getElementById('ecg-cv');if(cv)drawECG(cv,c.ecg);},80);
+  startTimer();
+}
+
+function pick(idx){
+  if(answered)return;
+  answered=true; clearInterval(timerInt);
+  var c=CASES[cur];
+  var ok=c.choices[idx].ok;
+  if(ok) score+=Math.max(10,Math.round(timeLeft/60*100));
+  else lives=Math.max(0,lives-1);
+  renderLives();
+  results.push({i:cur,ok:ok,idx:idx});
+  document.getElementById('score-display').textContent=score+'점';
+  document.querySelectorAll('.choice-btn').forEach(function(b,i){
+    b.disabled=true;
+    if(c.choices[i].ok) b.classList.add('correct');
+    else if(i===idx&&!c.choices[i].ok) b.classList.add('wrong');
+  });
+  showFeedback(ok,c,false);
+  if(lives<=0){clearInterval(timerInt);setTimeout(showResult,2500);}
+}
+
+function showFeedback(ok,c,timeout){
+  var wrap=document.querySelector('.choices');
+  if(!wrap)return;
+  var fb=document.createElement('div');
+  fb.className='feedback-box '+(ok?'correct':'wrong');
+  fb.innerHTML=
+    (timeout?'<div class="timeout-badge">⏰ 시간 초과!</div><br>':'')+
+    '<div class="feedback-title"><i class="ti '+(ok?'ti-circle-check':'ti-circle-x')+'" aria-hidden="true" style="font-size:18px;color:'+(ok?'#4CAF50':'#F44336')+'"></i>'+(ok?'정답입니다! 훌륭해요':'오답입니다!')+'</div>'+
+    '<div class="feedback-body">'+(ok?c.okFb:c.failFb)+'</div>'+
+    '<div class="feedback-key"><i class="ti ti-bulb" aria-hidden="true" style="font-size:13px;vertical-align:-2px;margin-right:4px;color:#F59E0B"></i>핵심: '+c.key+'</div>';
+  wrap.appendChild(fb);
+  var nb=document.createElement('button');
+  nb.className='next-btn';
+  nb.innerHTML=cur<CASES.length-1
+    ?'<i class="ti ti-arrow-right" aria-hidden="true" style="font-size:15px;vertical-align:-2px;margin-right:6px"></i>다음 케이스'
+    :'<i class="ti ti-flag-3" aria-hidden="true" style="font-size:15px;vertical-align:-2px;margin-right:6px"></i>최종 결과 확인';
+  nb.onclick=function(){cur++;showCase();};
+  wrap.appendChild(nb);
+  setTimeout(function(){fb.scrollIntoView({behavior:'smooth',block:'nearest'});},100);
+}
+
+function showResult(){
+  clearInterval(timerInt);
+  var total=CASES.length;
+  var correct=results.filter(function(r){return r.ok;}).length;
+  var pct=Math.round(correct/total*100);
+  var grade,gc,msg;
+  if(pct>=90){grade='A+ 최우수';gc='#14532d';msg='완벽한 응급 대응 능력입니다! 프리셉터도 인정할 실력이에요.';}
+  else if(pct>=75){grade='B+ 우수';gc='#1e40af';msg='대부분의 상황에서 올바른 판단을 했습니다. 틀린 케이스를 복습하면 완벽해져요!';}
+  else if(pct>=50){grade='C 양호';gc='#92400E';msg='기본 대응은 알고 있지만 우선순위가 아직 헷갈리는군요. 교육 자료를 다시 복습해보세요!';}
+  else{grade='D 재도전 필요';gc='#7f1d1d';msg='응급 대응 순서를 더 연습해야 합니다. SBAR 케이스와 교육 자료를 충분히 복습 후 다시 도전하세요!';}
+
+  var breakdownRows=CASES.map(function(c,i){
+    var r=results.find(function(r){return r.i===i;});
+    var ok=r&&r.ok;
+    var timeout=r&&r.timeout;
+    var cls=!r?'skip':(ok?'ok':'fail');
+    var label=!r?'미응시':(ok?'✓ 정답':(timeout?'⏰ 시간초과':'✗ 오답'));
+    return '<div class="breakdown-row">'+
+      '<div><div class="breakdown-case">'+c.title+'</div>'+
+      (!ok&&r?'<div class="breakdown-key">핵심: '+c.key+'</div>':'')+
+      '</div>'+
+      '<span class="breakdown-result '+cls+'">'+label+'</span>'+
+      '</div>';
+  }).join('');
+
+  document.getElementById('main').innerHTML=
+    '<div class="result-screen">'+
+    '<div style="font-size:44px;margin-bottom:10px;color:#1F75FE"><i class="ti ti-award" aria-hidden="true"></i></div>'+
+    '<div class="result-score">'+score+'</div>'+
+    '<div class="result-label">최종 점수</div>'+
+    '<div class="result-grade" style="color:'+gc+'">'+grade+'</div>'+
+    '<div class="result-msg">'+msg+'</div>'+
+    '<div class="stat-grid">'+
+    '<div class="stat-box"><div class="stat-n" style="color:#14532d">'+correct+'/'+total+'</div><div class="stat-l">정답 수</div></div>'+
+    '<div class="stat-box"><div class="stat-n" style="color:#1F75FE">'+lives+'</div><div class="stat-l">남은 하트</div></div>'+
+    '</div>'+
+    '<div class="result-breakdown">'+
+    '<div class="breakdown-hd">케이스별 결과 및 핵심 포인트</div>'+
+    breakdownRows+
+    '</div>'+
+    '<button class="restart-btn" onclick="startGame()"><i class="ti ti-refresh" aria-hidden="true" style="font-size:16px;vertical-align:-2px;margin-right:7px"></i>다시 도전하기</button>'+
+    '</div>';
+}
+
+renderLives();
+showIntro();
+</script>
+</body>
+</html>
