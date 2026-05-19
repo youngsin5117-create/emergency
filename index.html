@@ -1,0 +1,1879 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>25병동 간호 시뮬레이션</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#F0F6FC;color:#1a2e44;min-height:100vh}
+.game{max-width:440px;margin:0 auto;padding:12px;padding-bottom:40px}
+.topbar{background:#1F4E79;border-radius:12px;padding:12px 16px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.topbar h1{color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px}
+.score-box{display:flex;gap:8px;align-items:center}
+.score-pill{background:rgba(255,255,255,.18);color:#fff;font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px}
+.life-box{display:flex;gap:2px}
+.life{font-size:14px}
+
+/* 모드 선택 */
+.mode-screen{padding:4px 0}
+.mode-title{font-size:20px;font-weight:800;color:#1a2e44;margin-bottom:6px;text-align:center}
+.mode-sub{font-size:12px;color:#64748B;text-align:center;margin-bottom:16px;line-height:1.6}
+.mode-card{background:#fff;border-radius:12px;border:1.5px solid #E2E8F0;padding:14px;margin-bottom:10px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:12px}
+.mode-card:hover{border-color:#1F75FE;background:#F8FBFF}
+.mode-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.mode-info{flex:1}
+.mode-name{font-size:14px;font-weight:700;color:#1a2e44;margin-bottom:3px}
+.mode-desc{font-size:11px;color:#64748B;line-height:1.4}
+.mode-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;margin-top:4px;display:inline-block}
+.bank-stat{background:#F8FAFD;border-radius:10px;padding:10px 14px;margin-bottom:14px;border:1px solid #E2E8F0}
+.stat-row-intro{display:flex;justify-content:space-between;font-size:11px;color:#64748B;padding:3px 0;border-bottom:1px solid #F1F5F9}
+.stat-row-intro:last-child{border-bottom:none}
+.stat-row-intro strong{color:#1a2e44}
+
+/* 문제 공통 */
+.case-card{background:#fff;border-radius:12px;border:1px solid #E2E8F0;margin-bottom:10px;overflow:hidden}
+.case-hdr{padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.case-hdr-title{font-size:13px;font-weight:700;color:#1a2e44;flex:1}
+.case-tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.patient-strip{background:#F8FAFD;padding:8px 14px;border-bottom:1px solid #F1F5F9}
+.pt-row{display:flex;gap:12px;flex-wrap:wrap}
+.pt-item{font-size:11px;color:#64748B}
+.pt-item strong{color:#1a2e44;font-weight:700}
+.monitor-bg{background:#080808;border-radius:10px;margin:10px 12px 6px;padding:10px 12px}
+.monitor-row{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:4px}
+.vital-box{background:#111;border-radius:6px;padding:6px 8px}
+.vital-label{font-size:9px;color:#666;text-transform:uppercase;letter-spacing:.5px;margin-bottom:1px}
+.vital-value{font-size:17px;font-weight:800;line-height:1;letter-spacing:-0.5px}
+.vital-unit{font-size:9px;font-weight:400;margin-left:2px}
+.vn{color:#4CAF50}.vw{color:#FF9800}.vd{color:#F44336}
+.ecg-area{background:#080808;border-radius:7px;margin:0 12px 10px;padding:8px 10px}
+.ecg-label{font-size:9px;color:#444;letter-spacing:.5px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center}
+canvas{display:block;width:100%;height:52px}
+.situation-box{padding:11px 14px;border-top:1px solid #F1F5F9}
+.situation-box p{font-size:12.5px;line-height:1.65;color:#2C3A4A}
+.nurse-says{background:#EFF6FF;border-left:3px solid #2E75B6;border-radius:0 6px 6px 0;padding:7px 10px;margin-top:7px;font-size:11.5px;color:#1e40af;font-style:italic;line-height:1.5}
+
+/* 선택지 */
+.choices{padding:0 14px 14px}
+.choices-title{font-size:11px;font-weight:700;color:#94A3B8;margin-bottom:7px;text-transform:uppercase;letter-spacing:.5px}
+.choice-btn{width:100%;text-align:left;background:#fff;border:1.5px solid #E2E8F0;border-radius:9px;padding:10px 12px;font-size:12.5px;color:#1a2e44;cursor:pointer;margin-bottom:6px;font-family:inherit;display:flex;align-items:flex-start;gap:8px;line-height:1.4;transition:all .15s}
+.choice-btn:hover{border-color:#94A3B8;background:#F8FAFD}
+.choice-no{font-size:11px;font-weight:700;color:#94A3B8;min-width:18px;padding-top:1px;flex-shrink:0}
+.choice-btn.correct{background:#F0FDF4;border-color:#4CAF50;color:#14532d}
+.choice-btn.correct .choice-no{color:#4CAF50}
+.choice-btn.wrong{background:#FFF1F2;border-color:#F44336;color:#7f1d1d}
+.choice-btn.wrong .choice-no{color:#F44336}
+.choice-btn.missed{background:#FFFBEB;border-color:#F59E0B;color:#78350f}
+.choice-btn:disabled{cursor:default}
+
+/* 피드백 */
+.feedback-box{margin:4px 14px 14px;border-radius:10px;padding:12px 13px}
+.feedback-box.correct{background:#F0FDF4;border:1.5px solid #4CAF50}
+.feedback-box.wrong{background:#FFF1F2;border:1.5px solid #F44336}
+.feedback-title{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:5px}
+.feedback-body{font-size:12px;line-height:1.65;color:#2C3A4A}
+.feedback-key{font-size:11px;font-weight:600;margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,0,0,.08);color:#374151;line-height:1.5}
+.next-btn{background:#1F75FE;color:#fff;border:none;border-radius:9px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:block;width:calc(100% - 28px);margin:0 14px 14px}
+.next-btn:hover{background:#1558C0}
+.progress-bar{height:4px;background:#E2E8F0;border-radius:3px;margin:0 14px 9px;overflow:hidden}
+.progress-fill{height:100%;background:#1F75FE;border-radius:3px;transition:width .5s ease}
+.timer-row{display:flex;align-items:center;justify-content:space-between;padding:0 14px;margin-bottom:8px}
+.timer-label{font-size:11px;color:#64748B;font-weight:600}
+.timer-val{font-size:13px;font-weight:800;color:#1F75FE;font-variant-numeric:tabular-nums}
+.timer-val.urgent{color:#F44336;animation:pulse .6s infinite alternate}
+@keyframes pulse{from{opacity:1}to{opacity:.4}}
+
+/* ECG 파형 판독 특수 스타일 */
+.ecg-big{background:#080808;border-radius:10px;margin:10px 12px;padding:12px}
+.ecg-big canvas{height:70px}
+.ecg-hint{font-size:11px;color:#888;margin-top:6px;text-align:center}
+.wave-choice{background:#111;border:1.5px solid #2a2a2a;color:#ccc;border-radius:8px;padding:10px 12px;margin-bottom:6px;cursor:pointer;font-size:13px;font-family:inherit;width:100%;text-align:left;display:flex;align-items:center;gap:8px;transition:all .15s}
+.wave-choice:hover{border-color:#1F75FE;background:#1a1a1a}
+.wave-choice.correct{background:#0a2a0a;border-color:#4CAF50;color:#4CAF50}
+.wave-choice.wrong{background:#2a0a0a;border-color:#F44336;color:#F44336}
+.wave-choice.missed{background:#2a2000;border-color:#F59E0B;color:#F59E0B}
+.wave-choice:disabled{cursor:default}
+.wave-no{font-size:11px;font-weight:700;min-width:18px;flex-shrink:0}
+
+/* 결과 */
+.result-screen{text-align:center;padding:20px 14px}
+.result-score{font-size:52px;font-weight:900;color:#1F75FE;line-height:1;letter-spacing:-1px}
+.result-label{font-size:13px;color:#64748B;margin:4px 0 12px}
+.result-grade{font-size:24px;font-weight:800;margin-bottom:8px}
+.result-msg{font-size:12px;color:#64748B;line-height:1.65;margin-bottom:16px}
+.result-breakdown{background:#F8FAFD;border-radius:10px;padding:12px 14px;margin-bottom:14px;text-align:left;border:1px solid #E2E8F0;max-height:340px;overflow-y:auto}
+.breakdown-hd{font-size:11px;font-weight:700;color:#94A3B8;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+.breakdown-row{padding:6px 0;border-bottom:1px solid #F1F5F9;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.breakdown-row:last-child{border-bottom:none}
+.breakdown-left{flex:1}
+.breakdown-case{font-size:11.5px;color:#374151;line-height:1.4;font-weight:600}
+.breakdown-key{font-size:10px;color:#94A3B8;margin-top:2px;line-height:1.4}
+.breakdown-result{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.ok{background:#F0FDF4;color:#14532d}
+.fail{background:#FFF1F2;color:#7f1d1d}
+.skip{background:#F1F5F9;color:#475569}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:14px}
+.stat-box{background:#F8FAFD;border-radius:9px;padding:10px;text-align:center;border:1px solid #E2E8F0}
+.stat-n{font-size:20px;font-weight:800;line-height:1}
+.stat-l{font-size:10px;color:#64748B;margin-top:3px}
+.restart-btn{width:100%;background:#1F4E79;color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;margin-bottom:8px}
+.restart-btn:hover{background:#163A5E}
+.home-btn{width:100%;background:#fff;color:#1F4E79;border:1.5px solid #1F4E79;border-radius:10px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+.timeout-badge{background:#FFFBEB;border:1px solid #F59E0B;border-radius:6px;padding:4px 9px;font-size:11px;font-weight:700;color:#92400E;margin-bottom:7px;display:inline-block}
+.diff-badge{display:inline-flex;align-items:center;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;margin-left:5px;vertical-align:middle}
+.diff-2{background:#FFF8E1;color:#E65100}.diff-3{background:#FFEBEE;color:#B71C1C}
+.cat-chip{font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;background:#EBF4FA;color:#1558C0;margin-left:5px;vertical-align:middle}
+</style>
+</head>
+<body>
+<div class="game">
+  <div class="topbar">
+    <h1><i class="ti ti-emergency-bed" aria-hidden="true" style="font-size:16px"></i>25병동 간호 시뮬레이션</h1>
+    <div class="score-box">
+      <div class="score-pill" id="score-display">0점</div>
+      <div class="life-box" id="life-display"></div>
+    </div>
+  </div>
+  <div id="main"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// 문제 유형
+// type: 'clinical'  — 응급 대응 선택 (기존)
+// type: 'ecg_id'    — ECG 파형 보고 리듬 맞추기 (신규)
+// type: 'knowledge' — 간호 지식 객관식 (신규)
+// ═══════════════════════════════════════════════════════
+
+// ── ECG 파형 판독 문제 ──────────────────────────────
+var ECG_ID_BANK = [
+{type:'ecg_id',cat:'ECG 파형 판독',diff:1,
+ title:'이 심전도 리듬은?',tag:'파형판독★',tagColor:'#1558C0',tagBg:'#EBF4FA',
+ ecg:'normal',ecgColor:'#00E676',
+ hint:'HR 약 75회/분 — 규칙적인 P-QRS-T',
+ choices:[
+   {t:'정상 동율동 (Normal Sinus Rhythm)',ok:true},
+   {t:'심방세동 (Atrial Fibrillation)',ok:false},
+   {t:'1도 방실차단',ok:false},
+   {t:'동성 서맥 (Sinus Bradycardia)',ok:false}
+ ],
+ okFb:'정확합니다! NSR: P파 존재, 규칙적 RR, HR 60~100회/분, QRS <0.12초.',
+ failFb:'정상 동율동입니다. P파가 모든 QRS 앞에 규칙적으로 존재하고 HR 60~100회/분입니다.',
+ key:'NSR: P파+규칙적 RR+HR 60-100+QRS<0.12초'},
+
+{type:'ecg_id',cat:'ECG 파형 판독',diff:1,
+ title:'이 심전도 리듬은?',tag:'파형판독★',tagColor:'#1558C0',tagBg:'#EBF4FA',
+ ecg:'vf',ecgColor:'#FF5252',
+ hint:'파형이 불규칙하게 흔들리며 QRS 식별 불가',
+ choices:[
+   {t:'심실세동 (Ventricular Fibrillation)',ok:true},
+   {t:'심실빈맥 (Ventricular Tachycardia)',ok:false},
+   {t:'심방세동 (Atrial Fibrillation)',ok:false},
+   {t:'조기심실수축 (PVC)',ok:false}
+ ],
+ okFb:'정확합니다! VF: 완전히 혼돈된 파형, QRS 식별 불가 = 심정지. 즉각 CPR + 제세동!',
+ failFb:'심실세동입니다. 파형이 완전히 무질서하고 QRS 식별이 불가합니다.',
+ key:'VF: 혼돈된 파형, QRS 없음 = 심정지. 즉각 CPR + 200J 제세동'},
+
+{type:'ecg_id',cat:'ECG 파형 판독',diff:1,
+ title:'이 심전도 리듬은?',tag:'파형판독★',tagColor:'#1558C0',tagBg:'#EBF4FA',
+ ecg:'afib',ecgColor:'#9C27B0',
+ hint:'기저선이 불규칙하게 떨리고 RR 간격이 불규칙',
+ choices:[
+   {t:'심방세동 (Atrial Fibrillation)',ok:true},
+   {t:'심실세동 (Ventricular Fibrillation)',ok:false},
+   {t:'정상 동율동',ok:false},
+   {t:'심실빈맥 (VT)',ok:false}
+ ],
+ okFb:'정확합니다! AFib: P파 소실 + f파(잔떨림) + 불규칙 RR. 뇌졸중 위험 5배!',
+ failFb:'심방세동입니다. P파가 없고 기저선에 f파가 보이며 RR 간격이 불규칙합니다.',
+ key:'AFib: P파 소실+f파+불규칙 RR. 항응고 필요. CHA₂DS₂-VASc 점수 산정'},
+
+{type:'ecg_id',cat:'ECG 파형 판독',diff:1,
+ title:'이 심전도 리듬은?',tag:'파형판독★',tagColor:'#1558C0',tagBg:'#EBF4FA',
+ ecg:'brady',ecgColor:'#00E676',
+ hint:'RR 간격이 넓고 심박수가 느림',
+ choices:[
+   {t:'동성 서맥 (Sinus Bradycardia)',ok:true},
+   {t:'동성 빈맥 (Sinus Tachycardia)',ok:false},
+   {t:'심방세동',ok:false},
+   {t:'완전 방실차단',ok:false}
+ ],
+ okFb:'정확합니다! 동성 서맥: P파 존재 + 규칙적 + HR <60회/분. 원인: 미주신경, 베타차단제.',
+ failFb:'동성 서맥입니다. P파가 존재하고 규칙적이지만 HR이 60회/분 미만입니다.',
+ key:'서맥: HR<60, P파 존재, 규칙적. 증상 동반 시 Atropine 0.5mg IV'},
+
+{type:'ecg_id',cat:'ECG 파형 판독',diff:1,
+ title:'이 심전도 리듬은?',tag:'파형판독★',tagColor:'#1558C0',tagBg:'#EBF4FA',
+ ecg:'tachy',ecgColor:'#FF9800',
+ hint:'RR 간격이 좁고 심박수가 빠름',
+ choices:[
+   {t:'동성 빈맥 (Sinus Tachycardia)',ok:true},
+   {t:'심실빈맥 (VT)',ok:false},
+   {t:'완전 방실차단',ok:false},
+   {t:'동성 서맥',ok:false}
+ ],
+ okFb:'정확합니다! 동성 빈맥: P파 존재 + 규칙적 + HR >100회/분. 원인: 발열, 통증, 탈수.',
+ failFb:'동성 빈맥입니다. P파가 존재하고 규칙적이며 HR이 100회/분을 초과합니다.',
+ key:'빈맥: HR>100, P파 존재, 규칙적. 원인 교정이 우선(발열·탈수·통증)'},
+
+{type:'ecg_id',cat:'ECG 파형 판독',diff:2,
+ title:'이 심전도 리듬은?',tag:'파형판독★★',tagColor:'#1558C0',tagBg:'#EBF4FA',
+ ecg:'vt',ecgColor:'#F44336',
+ hint:'넓고 기이한 QRS가 빠르고 규칙적으로 반복',
+ choices:[
+   {t:'심실빈맥 (Ventricular Tachycardia)',ok:true},
+   {t:'동성 빈맥',ok:false},
+   {t:'심방세동 with RVR',ok:false},
+   {t:'심실세동',ok:false}
+ ],
+ okFb:'정확합니다! VT: 넓은 QRS(>0.12초) + 빠르고 규칙적(100~250회/분) + P파 없음.',
+ failFb:'심실빈맥입니다. QRS가 넓고 기이하며 빠르고 규칙적인 것이 특징입니다.',
+ key:'VT: 넓은 QRS+빠른 규칙 리듬. 의식 있음→Amiodarone, 없음→Synchronized Cardioversion'},
+
+{type:'ecg_id',cat:'ECG 파형 판독',diff:2,
+ title:'이 심전도 리듬은?',tag:'파형판독★★',tagColor:'#1558C0',tagBg:'#EBF4FA',
+ ecg:'pvc',ecgColor:'#FF9800',
+ hint:'정상 박동 중 갑자기 넓고 기이한 QRS 출현',
+ choices:[
+   {t:'조기심실수축 (PVC)',ok:true},
+   {t:'심실빈맥 (VT)',ok:false},
+   {t:'심방조기수축 (PAC)',ok:false},
+   {t:'2도 방실차단',ok:false}
+ ],
+ okFb:'정확합니다! PVC: 정상 박동 중 갑자기 P파 없이 넓은 기이한 QRS + 완전 보상 휴지기.',
+ failFb:'조기심실수축(PVC)입니다. 정상 박동 사이에 P파 없이 넓고 기이한 QRS가 갑자기 나타납니다.',
+ key:'PVC: P파 없음+넓은 기이한 QRS+보상 휴지기. 빈발(>6회/분) 시 전해질 확인 + 보고'},
+
+{type:'ecg_id',cat:'ECG 파형 판독',diff:2,
+ title:'이 심전도 리듬은?',tag:'파형판독★★',tagColor:'#1558C0',tagBg:'#EBF4FA',
+ ecg:'stemi',ecgColor:'#F44336',
+ hint:'ST 분절이 기저선 위로 솟아 있음',
+ choices:[
+   {t:'ST 분절 상승 (STEMI 의심)',ok:true},
+   {t:'정상 동율동',ok:false},
+   {t:'1도 방실차단',ok:false},
+   {t:'심방세동',ok:false}
+ ],
+ okFb:'정확합니다! ST 상승: 기저선 대비 ST 분절이 위로 상승 = 심근경색(STEMI) 의심. 즉각 응급 대응!',
+ failFb:'ST 분절 상승입니다. 기저선보다 ST 분절이 상승된 것이 보입니다. STEMI 의심.',
+ key:'ST 상승: 2개↑ 연속 유도에서 ≥1mm = STEMI. Door-to-ECG 10분, Door-to-Balloon 90분'},
+
+{type:'ecg_id',cat:'ECG 파형 판독',diff:2,
+ title:'이 심전도 리듬은?',tag:'파형판독★★',tagColor:'#1558C0',tagBg:'#EBF4FA',
+ ecg:'completeavb',ecgColor:'#FF9800',
+ hint:'P파와 QRS가 완전히 독립적으로 움직임 (파란색=P파, 빨간색=QRS)',
+ choices:[
+   {t:'완전(3도) 방실차단',ok:true},
+   {t:'1도 방실차단',ok:false},
+   {t:'동성 서맥',ok:false},
+   {t:'심실빈맥',ok:false}
+ ],
+ okFb:'정확합니다! 완전 방실차단: P파와 QRS가 완전히 분리·독립 → 심실 탈출박동(느리고 넓음).',
+ failFb:'완전 방실차단입니다. P파와 QRS가 서로 무관하게 독립적으로 나타납니다.',
+ key:'3도 AVB: P파↔QRS 완전 분리. 즉각 임시 페이싱 + Atropine 준비'},
+
+{type:'ecg_id',cat:'ECG 파형 판독',diff:2,
+ title:'이 심전도 리듬은?',tag:'파형판독★★',tagColor:'#1558C0',tagBg:'#EBF4FA',
+ ecg:'avb1',ecgColor:'#00E676',
+ hint:'PR 간격이 정상(0.12~0.20초)보다 길어 보임',
+ choices:[
+   {t:'1도 방실차단 (PR 연장)',ok:true},
+   {t:'완전 방실차단',ok:false},
+   {t:'정상 동율동',ok:false},
+   {t:'조기심실수축',ok:false}
+ ],
+ okFb:'정확합니다! 1도 AVB: PR 간격 >0.20초(5 소격자). P-QRS 1:1 유지. 단독으론 치료 불필요.',
+ failFb:'1도 방실차단입니다. P파와 QRS는 1:1로 규칙적이나 PR 간격이 0.20초를 초과합니다.',
+ key:'1도 AVB: PR>0.20초, P-QRS 1:1. 단독 치료 불필요. 원인 파악(약물·심근염)과 추적 모니터링'},
+
+{type:'ecg_id',cat:'ECG 파형 판독',diff:3,
+ title:'이 심전도 패턴의 위험성은?',tag:'파형판독★★★',tagColor:'#7f1d1d',tagBg:'#FFF1F2',
+ ecg:'pvc',ecgColor:'#F44336',
+ hint:'정상 박동과 PVC가 교대로 반복되는 패턴 — Bigeminy',
+ choices:[
+   {t:'저칼륨·저마그네슘이 원인일 수 있어 즉각 전해질 확인이 필요하다',ok:true},
+   {t:'PVC가 단발성이므로 위험하지 않아 관찰 불필요',ok:false},
+   {t:'항부정맥제 즉각 투여가 필요한 응급이다',ok:false},
+   {t:'VF로 즉시 진행하는 리듬이다',ok:false}
+ ],
+ okFb:'정확합니다! Bigeminy = 정상+PVC 교대 패턴. 빈발 PVC의 가장 흔한 원인은 저K⁺·저Mg²⁺.',
+ failFb:'Bigeminy는 관찰이 필요하며, 전해질(K⁺·Mg²⁺) 확인이 우선입니다. 즉각 항부정맥제는 과잉.',
+ key:'Bigeminy: 즉각 항부정맥제 금기. 전해질(K⁺·Mg²⁺) 확인 → 교정이 1차'},
+
+{type:'ecg_id',cat:'ECG 파형 판독',diff:3,
+ title:'이 파형에서 즉각 해야 할 일은?',tag:'파형판독★★★',tagColor:'#7f1d1d',tagBg:'#FFF1F2',
+ ecg:'vf',ecgColor:'#FF5252',
+ hint:'모니터에서 이 파형을 발견! 환자는 반응 없음',
+ choices:[
+   {t:'코드 블루 선언 + CPR 즉시 시작 + AED/제세동기 요청',ok:true},
+   {t:'12유도 심전도 시행 후 담당의 보고',ok:false},
+   {t:'Amiodarone 150mg IV push',ok:false},
+   {t:'활력징후 재측정 후 의사 지시 대기',ok:false}
+ ],
+ okFb:'완벽합니다! VF = 심정지. 즉각 코드 블루 + CPR. 1분 지연마다 생존율 7~10% 감소!',
+ failFb:'VF는 즉각 CPR + 제세동이 필요한 심정지. 심전도나 지시 기다리는 시간이 없습니다.',
+ key:'VF 대응: 코드 블루 → CPR(100~120회/분) → AED 200J → 2분마다 반복'},
+];
+
+// ── 간호 지식 문제 ─────────────────────────────────
+var KNOWLEDGE_BANK = [
+{type:'knowledge',cat:'기본 간호 지식',diff:1,
+ title:'PR 간격 정상 범위',tag:'지식★',tagColor:'#14532d',tagBg:'#F0FDF4',
+ situation:'심전도에서 PR 간격의 정상 범위로 옳은 것은?',
+ choices:[
+   {t:'0.12 ~ 0.20초 (3~5 소격자)',ok:true},
+   {t:'0.06 ~ 0.10초',ok:false},
+   {t:'0.20 ~ 0.28초',ok:false},
+   {t:'0.08 ~ 0.16초',ok:false}
+ ],
+ okFb:'정확합니다! PR 간격 정상: 0.12~0.20초. >0.20초 = 1도 방실차단.',
+ failFb:'PR 간격 정상 범위는 0.12~0.20초(3~5 소격자)입니다.',
+ key:'PR 정상: 0.12~0.20초. 0.20초 초과 = 1도 방실차단'},
+
+{type:'knowledge',cat:'기본 간호 지식',diff:1,
+ title:'정상 QRS 폭',tag:'지식★',tagColor:'#14532d',tagBg:'#F0FDF4',
+ situation:'정상 QRS 폭의 기준으로 옳은 것은?',
+ choices:[
+   {t:'0.12초 미만',ok:true},
+   {t:'0.20초 미만',ok:false},
+   {t:'0.06초 미만',ok:false},
+   {t:'0.16초 미만',ok:false}
+ ],
+ okFb:'정확합니다! QRS 정상 <0.12초. ≥0.12초 = 심실 내 전도 장애(각차단·VT).',
+ failFb:'정상 QRS 폭은 0.12초 미만(3 소격자)입니다.',
+ key:'QRS 정상: <0.12초. ≥0.12초 = BBB 또는 심실 기원 리듬'},
+
+{type:'knowledge',cat:'기본 간호 지식',diff:1,
+ title:'심박수 계산',tag:'지식★',tagColor:'#14532d',tagBg:'#F0FDF4',
+ situation:'심전도에서 RR 간격이 대격자(5mm) 4칸일 때 심박수는?',
+ choices:[
+   {t:'약 75회/분',ok:true},
+   {t:'약 60회/분',ok:false},
+   {t:'약 100회/분',ok:false},
+   {t:'약 50회/분',ok:false}
+ ],
+ okFb:'정확합니다! HR = 300 ÷ 대격자 수 = 300 ÷ 4 = 75회/분.',
+ failFb:'HR = 300 ÷ RR 간격(대격자 수). 4칸 = 300÷4 = 75회/분.',
+ key:'심박수 계산: 300 ÷ RR 간격(대격자). 3칸=100, 4칸=75, 5칸=60'},
+
+{type:'knowledge',cat:'기본 간호 지식',diff:1,
+ title:'투약 8Right 중 해당 안 되는 것',tag:'지식★',tagColor:'#14532d',tagBg:'#F0FDF4',
+ situation:'투약 8Right에 해당하지 않는 것은?',
+ choices:[
+   {t:'Right Diagnosis (진단명)',ok:true},
+   {t:'Right Drug (약물)',ok:false},
+   {t:'Right Dose (용량)',ok:false},
+   {t:'Right Documentation (기록)',ok:false}
+ ],
+ okFb:'정확합니다! 8Right: 환자·약물·용량·경로·시간·기록·교육·거부권. 진단명은 포함 안 됨.',
+ failFb:'투약 8Right에 진단명(Diagnosis)은 포함되지 않습니다.',
+ key:'8 Rights: Patient·Drug·Dose·Route·Time·Documentation·Education·Refuse'},
+
+{type:'knowledge',cat:'기본 간호 지식',diff:2,
+ title:'아나필락시스 1차 치료',tag:'지식★★',tagColor:'#14532d',tagBg:'#F0FDF4',
+ situation:'아나필락시스 쇼크의 1차 치료 약물과 투여 경로로 옳은 것은?',
+ choices:[
+   {t:'Epinephrine 0.5mg 대퇴 외측 근육 주사',ok:true},
+   {t:'Hydrocortisone 100mg 정맥 주사',ok:false},
+   {t:'Diphenhydramine 50mg 정맥 주사',ok:false},
+   {t:'Albuterol 흡입',ok:false}
+ ],
+ okFb:'정확합니다! 아나필락시스 1차: Epinephrine 0.5mg 대퇴 외측 IM. 항히스타민·스테로이드는 2차.',
+ failFb:'아나필락시스 1차 치료는 Epinephrine 0.5mg 대퇴 외측 근주입니다.',
+ key:'아나필락시스 1차: Epi 0.5mg IM(대퇴 외측). 항히스타민·스테로이드는 2차 치료'},
+
+{type:'knowledge',cat:'기본 간호 지식',diff:2,
+ title:'오피오이드 과용량 3징후',tag:'지식★★',tagColor:'#14532d',tagBg:'#F0FDF4',
+ situation:'오피오이드(마약성 진통제) 과용량의 3징후로 옳은 것은?',
+ choices:[
+   {t:'핀포인트 동공 + 서호흡(RR≤12) + 의식 저하',ok:true},
+   {t:'확장 동공 + 빈호흡 + 의식 명확',ok:false},
+   {t:'핀포인트 동공 + 빈맥 + 고혈압',ok:false},
+   {t:'산동 + 서맥 + 발한',ok:false}
+ ],
+ okFb:'정확합니다! 오피오이드 3징후: 핀포인트 동공+서호흡(≤12)+의식 저하. 길항제: Naloxone.',
+ failFb:'오피오이드 과용량 3징후: 핀포인트 동공+서호흡+의식 저하. 즉각 Naloxone 투여.',
+ key:'오피오이드: 핀포인트 동공+서호흡+의식↓. 길항제=Naloxone(벤조 길항제=Flumazenil)'},
+
+{type:'knowledge',cat:'기본 간호 지식',diff:2,
+ title:'Sepsis 1-hour Bundle 순서',tag:'지식★★',tagColor:'#14532d',tagBg:'#F0FDF4',
+ situation:'Sepsis 1-hour Bundle에서 가장 먼저 시행해야 하는 것은?',
+ choices:[
+   {t:'혈액 배양 2세트 채취 (항생제 투여 전)',ok:true},
+   {t:'광범위 항생제 즉시 투여',ok:false},
+   {t:'생리식염수 30mL/kg 급속 정주',ok:false},
+   {t:'Lactate 측정',ok:false}
+ ],
+ okFb:'정확합니다! 혈배양은 반드시 항생제 투여 전 채취. 순서는 상황에 따라 동시 진행 가능하나 배양이 우선.',
+ failFb:'혈액 배양은 항생제 투여 전에 반드시 채취해야 합니다. 이후 다른 Bundle을 진행합니다.',
+ key:'Sepsis Bundle: ①혈배양(항생제 전!) ②항생제 ③Lactate ④수액 30mL/kg'},
+
+{type:'knowledge',cat:'기본 간호 지식',diff:2,
+ title:'수혈 부작용 즉각 대응',tag:'지식★★',tagColor:'#14532d',tagBg:'#F0FDF4',
+ situation:'수혈 중 발열·오한·요통 발생 시 가장 먼저 해야 할 것은?',
+ choices:[
+   {t:'수혈을 즉시 중단하고 생리식염수 IV 라인 유지',ok:true},
+   {t:'수혈 속도를 절반으로 줄이고 경과 관찰',ok:false},
+   {t:'해열제 투여 후 수혈 계속 진행',ok:false},
+   {t:'의사에게 보고 후 지시 대기',ok:false}
+ ],
+ okFb:'정확합니다! 수혈 부작용 = 즉시 중단이 최우선. 속도 줄이기·해열제·대기 모두 오답.',
+ failFb:'수혈 부작용 시 즉시 중단 → 생리식염수 유지 → 혈액백 보존 → 의사 보고 순서.',
+ key:'수혈 부작용: 즉시 중단→생리식염수 유지→혈액백 보존→혈액은행 보고'},
+
+{type:'knowledge',cat:'기본 간호 지식',diff:3,
+ title:'고칼륨혈증 1차 치료',tag:'지식★★★',tagColor:'#14532d',tagBg:'#F0FDF4',
+ situation:'K⁺ 6.8 + 심전도 텐트형 T파 발생 시 1차 치료는?',
+ choices:[
+   {t:'Calcium gluconate IV (심장 막 안정화)',ok:true},
+   {t:'즉각 투석',ok:false},
+   {t:'Furosemide IV',ok:false},
+   {t:'K⁺ 식이 제한만 시행',ok:false}
+ ],
+ okFb:'정확합니다! 고K⁺+ECG 변화 1차: Calcium gluconate(심장 보호). 이후 Insulin+Dextrose로 K⁺ 이동.',
+ failFb:'고K⁺ + ECG 변화 시 1차는 Calcium gluconate IV로 심장 막 안정화입니다.',
+ key:'고K⁺ 치료 순서: ①Calcium gluconate(심장 보호) ②Insulin+Dextrose(이동) ③Kayexalate(배출)'},
+
+{type:'knowledge',cat:'기본 간호 지식',diff:3,
+ title:'저나트륨혈증 교정 속도',tag:'지식★★★',tagColor:'#14532d',tagBg:'#F0FDF4',
+ situation:'저나트륨혈증 교정이 너무 빠를 경우 발생할 수 있는 합병증은?',
+ choices:[
+   {t:'중심성 교뇨수마비증 (CPM / ODS)',ok:true},
+   {t:'뇌부종',ok:false},
+   {t:'심실세동',ok:false},
+   {t:'급성 신부전',ok:false}
+ ],
+ okFb:'정확합니다! 너무 빠른 Na⁺ 교정 → 삼투성 탈수초화 증후군(ODS)/CPM. 24시간 최대 10~12mEq/L.',
+ failFb:'저Na⁺를 너무 빨리 올리면 CPM(중심성 교뇨수마비증)이 발생합니다.',
+ key:'저Na⁺ 교정: 24h 최대 10~12mEq/L. 너무 빠르면 CPM(삼투성 탈수초화) 발생'},
+
+{type:'knowledge',cat:'기본 간호 지식',diff:2,
+ title:'Warfarin 길항제',tag:'지식★★',tagColor:'#14532d',tagBg:'#F0FDF4',
+ situation:'Warfarin 과용량 시 사용하는 길항제는?',
+ choices:[
+   {t:'Vitamin K + 신선동결혈장(FFP)',ok:true},
+   {t:'Protamine sulfate',ok:false},
+   {t:'Naloxone',ok:false},
+   {t:'Flumazenil',ok:false}
+ ],
+ okFb:'정확합니다! Warfarin 길항제 = Vitamin K + FFP. Protamine은 헤파린, Naloxone은 오피오이드.',
+ failFb:'Warfarin 과용량 = Vitamin K + FFP. Protamine은 헤파린, Naloxone은 오피오이드 길항제.',
+ key:'길항제: Warfarin→Vit K+FFP / Heparin→Protamine / Opioid→Naloxone / Benzo→Flumazenil'},
+
+{type:'knowledge',cat:'기본 간호 지식',diff:1,
+ title:'낙상 위험 Morse Scale 최고점 항목',tag:'지식★',tagColor:'#14532d',tagBg:'#F0FDF4',
+ situation:'Morse Fall Scale에서 가장 높은 점수(25점)를 부여하는 항목은?',
+ choices:[
+   {t:'낙상 과거력 있음',ok:true},
+   {t:'정맥주사 중',ok:false},
+   {t:'이동 능력: 허약',ok:false},
+   {t:'정신 상태: 자신 능력 과대평가',ok:false}
+ ],
+ okFb:'정확합니다! Morse Fall Scale: 낙상 과거력 = 25점(최고). 정신 상태 과대평가 = 15점.',
+ failFb:'Morse Fall Scale에서 낙상 과거력이 25점으로 가장 높습니다.',
+ key:'Morse Scale 최고점: 낙상 과거력(25점) > IV(20점) > 정신상태(15점)'},
+
+{type:'knowledge',cat:'기본 간호 지식',diff:2,
+ title:'SBAR A(Assessment) 해당 내용',tag:'지식★★',tagColor:'#14532d',tagBg:'#F0FDF4',
+ situation:'SBAR에서 A(Assessment)에 해당하는 것은?',
+ choices:[
+   {t:'간호사의 임상적 판단과 문제 해석',ok:true},
+   {t:'환자 이름, 병실, 입원 이유',ok:false},
+   {t:'현재 활력징후 및 증상 경과',ok:false},
+   {t:'원하는 처방 및 중재 요청',ok:false}
+ ],
+ okFb:'정확합니다! SBAR: S=상황, B=배경, A=간호사의 임상 판단, R=요청.',
+ failFb:'SBAR에서 A는 Assessment(간호사의 임상적 판단). S=상황, B=배경, R=요청.',
+ key:'SBAR: S=상황 / B=배경·병력 / A=임상 판단(간호사) / R=요청사항'},
+
+{type:'knowledge',cat:'기본 간호 지식',diff:3,
+ title:'TdP와 일반 VF 치료 차이',tag:'지식★★★',tagColor:'#14532d',tagBg:'#F0FDF4',
+ situation:'Torsades de Pointes(TdP)에서 투여가 금기인 약물은?',
+ choices:[
+   {t:'Amiodarone (QT 연장 효과로 악화)',ok:true},
+   {t:'Magnesium Sulfate',ok:false},
+   {t:'Isoproterenol',ok:false},
+   {t:'임시 페이싱',ok:false}
+ ],
+ okFb:'정확합니다! TdP에 Amiodarone은 QT를 더 연장시켜 금기. 1차 치료는 Magnesium Sulfate 2g IV.',
+ failFb:'TdP에 Amiodarone은 QT 연장 효과로 금기입니다. Mg²⁺ 2g IV가 1차 치료입니다.',
+ key:'TdP: Amiodarone 금기(QT↑). 1차=Magnesium Sulfate 2g IV. 유발 약물 즉시 중단'},
+
+{type:'knowledge',cat:'기본 간호 지식',diff:2,
+ title:'욕창 2단계 정의',tag:'지식★★',tagColor:'#14532d',tagBg:'#F0FDF4',
+ situation:'욕창 2단계(Stage II)의 정의로 옳은 것은?',
+ choices:[
+   {t:'진피까지 침범한 얕은 개방성 궤양 또는 혈청성 수포',ok:true},
+   {t:'발적이 있으나 피부 손상 없음',ok:false},
+   {t:'전층 피부 손상, 피하조직까지 침범',ok:false},
+   {t:'뼈·건·근육이 노출된 상태',ok:false}
+ ],
+ okFb:'정확합니다! Stage I=비창백 발적, Stage II=진피 침범 얕은 궤양, Stage III=피하조직, Stage IV=뼈 노출.',
+ failFb:'욕창 Stage II = 진피 침범 얕은 개방성 궤양 또는 혈청성 수포입니다.',
+ key:'욕창: Stage1=발적(피부 온전) / Stage2=진피·수포 / Stage3=피하조직 / Stage4=뼈 노출'},
+];
+
+// ── 응급 임상 문제 (기존에서 핵심 선별) ────────────
+var CLINICAL_BANK = [
+{type:'clinical',cat:'심전도·부정맥',diff:3,title:"심실세동 발생",tag:"응급★★★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"김○○",age:"68세 남",room:"301호",dx:"NSTEMI PCI 후 2일차"},
+ vitals:[{l:"HR",v:"--",u:"/분",c:"vd"},{l:"BP",v:"측정불가",u:"",c:"vd"},{l:"SpO₂",v:"82",u:"%",c:"vd"},{l:"의식",v:"없음",u:"",c:"vd"}],
+ ecg:"vf",
+ situation:"야간 순회 중 301호 모니터 알람. 환자 반응 없고 모니터에 혼돈된 파형이 보인다.",
+ nurse:null,
+ choices:[{t:"즉시 코드 블루 선언 + CPR 시작 + 제세동기 요청",ok:true},{t:"담당의에게 전화 후 지시를 기다린다",ok:false},{t:"12유도 심전도 먼저 시행 후 분석한다",ok:false},{t:"비재호흡 마스크 산소 투여 후 재측정",ok:false}],
+ okFb:"완벽합니다! VF = 심정지. 1분 지연마다 생존율 7~10% 감소.",
+ failFb:"VF는 즉각 CPR과 제세동이 필요합니다.",
+ key:"VF: 코드 블루 → CPR → AED → 2분마다 제세동 반복"},
+
+{type:'clinical',cat:'패혈증·감염',diff:2,title:"패혈증 의심 발열",tag:"응급★★★★",tagColor:"#4c1d95",tagBg:"#F5F3FF",
+ patient:{name:"홍○○",age:"71세 여",room:"311호",dx:"요로감염 치료 중"},
+ vitals:[{l:"BT",v:"39.4",u:"℃",c:"vd"},{l:"BP",v:"86/52",u:"mmHg",c:"vd"},{l:"HR",v:"118",u:"/분",c:"vw"},{l:"SpO₂",v:"93",u:"%",c:"vw"}],
+ ecg:"tachy",
+ situation:"오전 3:30, 고열·오한·핍뇨(2시간 15mL). qSOFA 3점. 혈압 빠르게 저하.",
+ nurse:"\"체온 39.4도, 혈압 86/52, 소변이 거의 안 나와요.\"",
+ choices:[{t:"혈액 배양 2세트(항생제 전) + 항생제 1시간 내 + Lactate 측정 + 수액 30mL/kg",ok:true},{t:"해열제 투여 후 30분 재측정",ok:false},{t:"혈액 배양 결과 나오면 항생제 투여",ok:false},{t:"산소 투여만 하고 아침에 주치의 보고",ok:false}],
+ okFb:"완벽합니다! Sepsis 1-hour Bundle. 혈배양은 항생제 투여 전 채취!",
+ failFb:"패혈증은 즉각 Bundle 필요. 배양 결과를 기다리면 패혈성 쇼크로 진행됩니다.",
+ key:"Sepsis Bundle: ①혈배양(항생제 전!) ②항생제 1시간 내 ③Lactate ④수액 30mL/kg"},
+
+{type:'clinical',cat:'수혈·투약',diff:2,title:"수혈 중 발열·오한",tag:"주의★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"김○○",age:"58세 남",room:"307호",dx:"위암 수술 POD#2, pRBC 수혈 중"},
+ vitals:[{l:"BT",v:"38.7",u:"℃",c:"vd"},{l:"BP",v:"108/68",u:"mmHg",c:"vw"},{l:"HR",v:"106",u:"/분",c:"vw"},{l:"SpO₂",v:"96",u:"%",c:"vn"}],
+ ecg:"tachy",
+ situation:"수혈 시작 20분 후, 80mL 주입. '몸이 떨리고 등이 아프다'.",
+ nurse:"\"수혈 부작용 같아요. 어떻게 해야 하나요?\"",
+ choices:[{t:"수혈 즉시 중단 + 생리식염수 IV 유지 + 혈액백 보존 + 의사 보고 + 소변 색 확인",ok:true},{t:"수혈 속도만 줄이고 경과 관찰",ok:false},{t:"해열제 투여 후 수혈 계속 진행",ok:false},{t:"수혈 백 교체 후 새 혈액으로 투여",ok:false}],
+ okFb:"정확합니다! 혈액백 보존 필수 — 혈액은행 원인 분석에 필요합니다.",
+ failFb:"수혈 부작용 시 즉시 중단이 최우선!",
+ key:"수혈 반응: ①즉시 중단 ②생리식염수 유지 ③혈액백 보존 ④혈액은행 보고 ⑤소변 색"},
+
+{type:'clinical',cat:'낙상·외상',diff:2,title:"낙상 후 의식 저하",tag:"응급★★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"박○○",age:"67세 남",room:"309호",dx:"Warfarin 복용(INR 2.8)"},
+ vitals:[{l:"BP",v:"168/96",u:"mmHg",c:"vd"},{l:"HR",v:"58",u:"/분",c:"vw"},{l:"GCS",v:"11점",u:"",c:"vd"},{l:"동공",v:"불균등",u:"",c:"vd"}],
+ ecg:"brady",
+ situation:"화장실 낙상 후 우측 측두부 혈종. 의식이 점점 저하.",
+ nurse:"\"아까보다 더 처졌어요. 동공도 좌우가 달라요.\"",
+ choices:[{t:"응급 의사 콜 + 두부 CT + 응급 혈액검사(INR) + Vit K + FFP 준비",ok:true},{t:"낙상 부위 처치 후 아침에 보고",ok:false},{t:"활력징후 30분마다 모니터링",ok:false},{t:"진통제 투여 후 안정",ok:false}],
+ okFb:"정확합니다! 동공 불균등+의식 저하+항응고제 = 두개내출혈 응급. Cushing Triad 징후.",
+ failFb:"낙상+의식 저하+항응고제 = 두개내출혈 응급! 아침까지 절대 기다리면 안 됩니다.",
+ key:"Cushing Triad: 고혈압+서맥+불규칙 호흡 = 뇌압 상승. 동공 불균등 → 즉각 신경외과 콜"},
+
+{type:'clinical',cat:'심전도·부정맥',diff:2,title:"심방세동 신규 발생",tag:"주의★★★",tagColor:"#4c1d95",tagBg:"#F5F3FF",
+ patient:{name:"정○○",age:"69세 남",room:"308호",dx:"고혈압 입원, 음주력"},
+ vitals:[{l:"HR",v:"138",u:"/분",c:"vd"},{l:"BP",v:"148/92",u:"mmHg",c:"vw"},{l:"SpO₂",v:"96",u:"%",c:"vn"},{l:"리듬",v:"불규칙",u:"",c:"vw"}],
+ ecg:"afib",
+ situation:"오전 2:40 모니터 알람. P파 소실 + 불규칙 RR + f파. 음주 후 입원.",
+ nurse:"\"P파가 없고 리듬이 불규칙해요.\"",
+ choices:[{t:"12유도 심전도 + K⁺·Mg²⁺·TSH·Troponin 채혈 + 심박수 조절 약물 + 심장내과 협진",ok:true},{t:"Aspirin 300mg 즉시 투여",ok:false},{t:"즉각 전기적 심장율동전환 시행",ok:false},{t:"12유도 심전도만 찍고 아침을 기다린다",ok:false}],
+ okFb:"정확합니다! 신규 AFib. 검사·약물 치료가 먼저입니다.",
+ failFb:"AFib RVR은 즉각 평가와 심박수 조절 필요.",
+ key:"신규 AFib: ①12유도 ECG ②전해질·TSH ③심박수 조절 ④CHA₂DS₂-VASc 점수"},
+
+{type:'clinical',cat:'수술 후 합병증',diff:2,title:"요정체",tag:"주의★★",tagColor:"#1e3a5f",tagBg:"#EFF6FF",
+ patient:{name:"강○○",age:"74세 남",room:"315호",dx:"직장암 수술 POD#3, 전립선비대증"},
+ vitals:[{l:"잔뇨",v:"520",u:"mL",c:"vd"},{l:"BP",v:"138/82",u:"mmHg",c:"vn"},{l:"HR",v:"88",u:"/분",c:"vn"},{l:"배뇨",v:"7h 0mL",u:"",c:"vd"}],
+ ecg:"normal",
+ situation:"도뇨관 제거 7시간 후 자연 배뇨 없음. BladderScan 520mL.",
+ nurse:"\"BladderScan 520mL예요.\"",
+ choices:[{t:"단순 도뇨 또는 유치도뇨관 재삽입 + Tamsulosin 검토 + Opioid PCA 감량",ok:true},{t:"물을 더 마시고 1시간 기다린다",ok:false},{t:"방광 초음파 한 번 더 재측정",ok:false},{t:"진통제 추가 후 경과 관찰",ok:false}],
+ okFb:"정확합니다! 잔뇨 300mL↑ = 요정체. 즉각 도뇨.",
+ failFb:"잔뇨 520mL = 방광 과팽창 위험. 즉각 도뇨 필요.",
+ key:"요정체 기준: 잔뇨 300mL↑. 500mL↑ 한번에 배출 금지"},
+
+{type:'clinical',cat:'수술 후 합병증',diff:2,title:"장마비 의심",tag:"주의★★★",tagColor:"#14532d",tagBg:"#F0FDF4",
+ patient:{name:"이○○",age:"66세 여",room:"316호",dx:"대장암 개복수술 POD#4"},
+ vitals:[{l:"BT",v:"37.6",u:"℃",c:"vw"},{l:"BP",v:"142/88",u:"mmHg",c:"vw"},{l:"HR",v:"96",u:"/분",c:"vw"},{l:"장음",v:"소실",u:"",c:"vd"}],
+ ecg:"normal",
+ situation:"POD#4, 복부 팽만 + 구토 3회. 배변·방귀 없음. 복부 둘레 6cm 증가.",
+ nurse:"\"장음이 전혀 안 들려요. 배도 많이 부풀었고요.\"",
+ choices:[{t:"NPO + L-tube 삽입(감압) + 복부 X선·CT + 전해질 검사 + Opioid PCA 감량",ok:true},{t:"식이를 죽에서 미음으로 변경",ok:false},{t:"걷기 운동만 시킨다",ok:false},{t:"진통제 추가 후 아침에 외과 진찰",ok:false}],
+ okFb:"정확합니다! NPO + L-tube 감압이 핵심.",
+ failFb:"장음 소실+팽만+무배변 = 장마비. 즉각 감압 처치 필요.",
+ key:"수술 후 장마비: NPO+L-tube+조기보행. 장 회복: 소장(POD1-2)→위(POD2-3)→대장(POD3-5)"},
+
+{type:'clinical',cat:'심전도·부정맥',diff:3,title:"TAVI 후 완전 방실차단",tag:"응급★★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"윤○○",age:"82세 여",room:"301호",dx:"TAVI 시술 후 6시간"},
+ vitals:[{l:"HR",v:"32",u:"/분",c:"vd"},{l:"BP",v:"82/54",u:"mmHg",c:"vd"},{l:"SpO₂",v:"92",u:"%",c:"vw"},{l:"의식",v:"실신 후",u:"",c:"vw"}],
+ ecg:"completeavb",
+ situation:"TAVI 6시간 후 실신 후 회복. P파와 QRS 완전 분리, HR 32회/분.",
+ nurse:"\"P파랑 QRS가 따로 움직여요.\"",
+ choices:[{t:"즉각 의사 응급 콜 + 경피적 임시 페이싱 준비 + Atropine IV + CCU 전동",ok:true},{t:"산소만 투여하고 30분 후 재측정",ok:false},{t:"수액 500mL 급속 정주",ok:false},{t:"12유도 심전도만 찍고 보고",ok:false}],
+ okFb:"정확합니다! TAVI 후 완전 방실차단 발생률 10~25%. 즉각 페이싱 응급.",
+ failFb:"완전 방실차단+혈압 저하 = 즉각 임시 페이싱 응급!",
+ key:"TAVI 후 AVB: 경피적 페이싱 → 경정맥 임시 페이싱 → PPM 고려"},
+
+{type:'clinical',cat:'호흡·기도',diff:2,title:"급성 폐부종",tag:"응급★★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"박○○",age:"68세 여",room:"312호",dx:"만성심부전 HFrEF EF 35%"},
+ vitals:[{l:"SpO₂",v:"86",u:"%",c:"vd"},{l:"BP",v:"172/104",u:"mmHg",c:"vd"},{l:"RR",v:"30",u:"/분",c:"vd"},{l:"HR",v:"118",u:"/분",c:"vw"}],
+ ecg:"tachy",
+ situation:"갑작스러운 호흡곤란. 기좌호흡. 핑크빛 거품 가래. 양측 폐 수포음.",
+ nurse:"\"숨을 못 쉬겠다고 하고 핑크빛 가래가 나와요.\"",
+ choices:[{t:"고유량 산소 + Furosemide 40mg IV + 즉각 의사 보고 + 앉은 자세 유지",ok:true},{t:"누워서 안정시키고 저유량 산소 투여",ok:false},{t:"수액 500mL 급속 정주",ok:false},{t:"베타차단제 투여",ok:false}],
+ okFb:"정확합니다! 급성 폐부종: 좌위(단좌위) + 산소 + Furosemide. 누우면 더 악화.",
+ failFb:"폐부종에 수액은 금기. 누운 자세는 폐울혈 악화. 앉히고 이뇨제+산소 우선.",
+ key:"급성 폐부종: 좌위(단좌위)+산소+Furosemide IV. 수액·누운 자세 금기"},
+
+{type:'clinical',cat:'수혈·투약',diff:3,title:"아나필락시스",tag:"응급★★★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"박○○",age:"43세 여",room:"320호",dx:"Penicillin 투여 시작 5분 후"},
+ vitals:[{l:"BP",v:"74/42",u:"mmHg",c:"vd"},{l:"HR",v:"128",u:"/분",c:"vd"},{l:"SpO₂",v:"88",u:"%",c:"vd"},{l:"피부",v:"두드러기",u:"",c:"vd"}],
+ ecg:"tachy",
+ situation:"항생제 5분 후 두드러기, 얼굴 부종, 호흡곤란, 혈압 급락.",
+ nurse:"\"항생제 맞고 갑자기 두드러기와 혈압이 떨어졌어요!\"",
+ choices:[{t:"항생제 즉시 중단 + Epinephrine 0.5mg 대퇴 외측 근주 + 응급 콜 + 산소",ok:true},{t:"항히스타민제(Diphenhydramine) IV 먼저",ok:false},{t:"스테로이드(Hydrocortisone) IV 먼저",ok:false},{t:"항생제 속도만 줄이고 경과 관찰",ok:false}],
+ okFb:"완벽합니다! 아나필락시스 1차 = Epinephrine 근주. 항히스타민·스테로이드는 2차.",
+ failFb:"아나필락시스 1차는 반드시 Epinephrine 0.5mg 대퇴 외측 근주입니다.",
+ key:"아나필락시스 1차: Epi 0.5mg IM(대퇴 외측). 항히스타민·스테로이드는 2차"},
+
+
+// ── index.html 임상 문제 57개 추가 ──
+
+// ──────────────────────────────────────────────────────
+// 카테고리 1: 심전도·부정맥 (10문제)
+// ──────────────────────────────────────────────────────
+{type:'clinical',cat:"심전도·부정맥",diff:3,title:"심실세동 발생",tag:"응급★★★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"김○○",age:"68세 남",room:"301호",dx:"NSTEMI PCI 후 2일차"},
+ vitals:[{l:"HR",v:"--",u:"/분",c:"vd"},{l:"BP",v:"측정불가",u:"",c:"vd"},{l:"SpO₂",v:"82",u:"%",c:"vd"},{l:"의식",v:"없음",u:"",c:"vd"}],
+ ecg:"vf",
+ situation:"야간 순회 중 301호 모니터에서 알람. 환자 반응 없고 모니터에 혼돈된 파형이 보인다.",
+ nurse:null,
+ choices:[
+   {t:"즉시 코드 블루 선언 + CPR 시작 + 제세동기 요청",ok:true},
+   {t:"담당의에게 전화하여 지시를 기다린다",ok:false},
+   {t:"12유도 심전도 먼저 시행 후 분석한다",ok:false},
+   {t:"비재호흡 마스크로 산소 투여 후 재측정한다",ok:false}
+ ],
+ okFb:"완벽합니다! VF = 심정지. 1분 지연마다 생존율 7~10% 감소. 즉각 코드 선언 → CPR → 제세동이 최우선입니다.",
+ failFb:"VF는 즉각 CPR과 제세동이 필요합니다. 전화·심전도·산소 먼저는 골든타임 낭비입니다.",
+ key:"VF: 코드 블루 → CPR(100~120회/분, 5~6cm) → AED → 2분마다 제세동 반복"},
+
+{type:'clinical',cat:"심전도·부정맥",diff:2,title:"심방세동 신규 발생",tag:"주의★★★",tagColor:"#4c1d95",tagBg:"#F5F3FF",
+ patient:{name:"정○○",age:"69세 남",room:"308호",dx:"고혈압 입원, 음주력"},
+ vitals:[{l:"HR",v:"138",u:"/분",c:"vd"},{l:"BP",v:"148/92",u:"mmHg",c:"vw"},{l:"SpO₂",v:"96",u:"%",c:"vn"},{l:"리듬",v:"불규칙",u:"",c:"vw"}],
+ ecg:"afib",
+ situation:"오전 2:40 모니터 알람. P파 소실 + 불규칙 RR + f파. 음주 후 입원한 환자. '가슴이 마구 뛴다'고 호소.",
+ nurse:"\"P파가 없고 리듬이 완전히 불규칙해요. 심방세동인 것 같아요.\"",
+ choices:[
+   {t:"12유도 심전도 + K⁺·Mg²⁺·TSH·Troponin 채혈 + 심박수 조절 약물 오더 + 심장내과 협진",ok:true},
+   {t:"Aspirin 300mg 즉시 투여 후 경과 관찰",ok:false},
+   {t:"즉각 전기적 심장율동전환(Cardioversion) 시행",ok:false},
+   {t:"12유도 심전도만 시행하고 아침에 주치의 보고",ok:false}
+ ],
+ okFb:"정확합니다! Holiday Heart Syndrome 가능성 있는 신규 AFib. 검사·약물 치료가 먼저이고 Cardioversion은 의사 판단 사항입니다.",
+ failFb:"AFib RVR은 즉각 평가와 심박수 조절이 필요. Aspirin은 AFib 치료제가 아니고, Cardioversion은 의사가 판단합니다.",
+ key:"신규 AFib: ①12유도 ECG ②전해질·TSH ③심박수 조절(Diltiazem/Metoprolol) ④CHA₂DS₂-VASc 점수 산정"},
+
+{type:'clinical',cat:"심전도·부정맥",diff:3,title:"TAVI 후 완전 방실차단",tag:"응급★★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"윤○○",age:"82세 여",room:"301호",dx:"TAVI 시술 후 6시간"},
+ vitals:[{l:"HR",v:"32",u:"/분",c:"vd"},{l:"BP",v:"82/54",u:"mmHg",c:"vd"},{l:"SpO₂",v:"92",u:"%",c:"vw"},{l:"의식",v:"실신 후",u:"",c:"vw"}],
+ ecg:"completeavb",
+ situation:"TAVI 6시간 후 갑자기 실신 후 회복. P파와 QRS가 완전히 분리, HR 32회/분. 혈압 저하.",
+ nurse:"\"P파랑 QRS가 따로 움직여요. 완전 방실차단 아닌가요?\"",
+ choices:[
+   {t:"즉각 의사 응급 콜 + 경피적 임시 페이싱 준비 + Atropine 0.5mg IV + CCU 전동 준비",ok:true},
+   {t:"산소 투여 후 30분 경과 관찰",ok:false},
+   {t:"생리식염수 500mL 급속 정주 후 재평가",ok:false},
+   {t:"12유도 심전도 시행 후 심장내과 아침 진찰 예약",ok:false}
+ ],
+ okFb:"정확합니다! TAVI 후 완전 방실차단 발생률 10~25%. 혈역학적 불안정 동반 시 즉각 페이싱이 필요한 응급입니다.",
+ failFb:"완전 방실차단+혈압 저하 = 즉각 임시 페이싱 응급! 산소·수액만으로는 해결되지 않습니다.",
+ key:"TAVI 후 AVB: 경피적 페이싱 즉각 준비 → 경정맥 임시 페이싱 → 영구 심박동기(PPM) 고려"},
+
+{type:'clinical',cat:"심전도·부정맥",diff:2,title:"심실빈맥 발생 — 의식 있는 환자",tag:"응급★★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"최○○",age:"58세 여",room:"306호",dx:"확장성 심근병증, EF 28%"},
+ vitals:[{l:"HR",v:"168",u:"/분",c:"vd"},{l:"BP",v:"102/68",u:"mmHg",c:"vw"},{l:"SpO₂",v:"93",u:"%",c:"vw"},{l:"의식",v:"있음",u:"",c:"vn"}],
+ ecg:"vt",
+ situation:"넓은 QRS 빈맥 HR 168회/분. 환자 '가슴이 심하게 뛰고 어지럽다'. 오늘 K⁺ 3.1, Mg²⁺ 0.8.",
+ nurse:"\"QRS가 넓고 빠른데 의식은 있어요. VT 같은데 어떻게 해야 하나요?\"",
+ choices:[
+   {t:"즉각 응급 콜 + 12유도 심전도 + Amiodarone 150mg IV 10분 투여 + 제세동기 침상 옆 준비",ok:true},
+   {t:"즉각 비동기 제세동 200J 시행",ok:false},
+   {t:"활력징후 15분마다 모니터링하며 경과 관찰",ok:false},
+   {t:"Metoprolol 경구 투여 후 재평가",ok:false}
+ ],
+ okFb:"정확합니다! 의식 있는 VT → 항부정맥제(Amiodarone) 우선. 비동기 제세동은 의식 없는 경우에 시행합니다.",
+ failFb:"의식 있는 VT에 비동기 제세동은 R-on-T 유발 위험! 의식 있으면 Amiodarone 먼저, 없으면 제세동입니다.",
+ key:"VT 의식 있음 → Amiodarone IV 우선. 의식 소실·혈압 저하 시 → 즉각 Synchronized Cardioversion"},
+
+{type:'clinical',cat:"심전도·부정맥",diff:2,title:"ST 분절 상승 — STEMI 의심",tag:"응급★★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"이○○",age:"72세 남",room:"305호",dx:"불안정형 협심증 추적 관찰"},
+ vitals:[{l:"BP",v:"158/96",u:"mmHg",c:"vw"},{l:"HR",v:"102",u:"/분",c:"vw"},{l:"SpO₂",v:"94",u:"%",c:"vw"},{l:"BT",v:"36.8",u:"℃",c:"vn"}],
+ ecg:"stemi",
+ situation:"오전 2:05 좌측 압박성 흉통 NRS 8/10, 좌측 팔 방사통, 식은땀, 오심 동반. 10분째 지속.",
+ nurse:"\"흉통이 계속된다고 하는데 심전도 모니터에서 ST가 올라가 보여요.\"",
+ choices:[
+   {t:"즉각 응급 콜 + 12유도 심전도(10분 이내) + Troponin 채혈 + Aspirin 300mg + 산소 투여",ok:true},
+   {t:"Nitroglycerine 설하 투여 후 통증 감소 확인",ok:false},
+   {t:"진통제(Ketorolac) 투여 후 30분 경과 관찰",ok:false},
+   {t:"12유도 심전도만 찍고 결과 기다린다",ok:false}
+ ],
+ okFb:"정확합니다! ST 상승+흉통 = STEMI 응급. Door-to-ECG 10분, Door-to-Balloon 90분 목표.",
+ failFb:"Nitroglycerine이나 진통제 먼저는 진단을 지연시킵니다. 즉각 응급 콜과 12유도 ECG가 최우선.",
+ key:"STEMI: 즉각 응급 콜 → 12유도 ECG(10분 이내) → Troponin 채혈 → Aspirin → PCI 준비"},
+
+{type:'clinical',cat:"심전도·부정맥",diff:3,title:"1도 방실차단 + 베타차단제 중독 감별",tag:"주의★★",tagColor:"#0277BD",tagBg:"#E1F5FE",
+ patient:{name:"박○○",age:"74세 남",room:"312호",dx:"고혈압·만성심부전, Metoprolol 복용 중"},
+ vitals:[{l:"HR",v:"48",u:"/분",c:"vw"},{l:"BP",v:"96/60",u:"mmHg",c:"vw"},{l:"SpO₂",v:"95",u:"%",c:"vn"},{l:"PR",v:"0.28초",u:"",c:"vd"}],
+ ecg:"brady",
+ situation:"PR 간격 0.28초(정상 0.12~0.20초). 오늘 아침 Metoprolol 100mg 복용 후 어지러움 호소.",
+ nurse:"\"PR이 많이 길어요. 1도 방실차단인 것 같은데 괜찮은 건가요?\"",
+ choices:[
+   {t:"12유도 심전도 + 담당의 보고 + 혈압·HR 지속 모니터링 + Metoprolol 용량 조정 검토",ok:true},
+   {t:"즉각 임시 페이싱 준비",ok:false},
+   {t:"Atropine 0.5mg IV 즉시 투여",ok:false},
+   {t:"단순 1도 방실차단이므로 추가 조치 불필요",ok:false}
+ ],
+ okFb:"정확합니다! 1도 방실차단은 단독으로 치료 불필요하지만 베타차단제 과용 가능성 확인 및 진행 여부 모니터링이 필요합니다.",
+ failFb:"1도 방실차단에 페이싱이나 Atropine은 과잉 처치입니다. 그렇다고 아무것도 안 하면 안 되고 — 원인 확인과 모니터링이 필요합니다.",
+ key:"1도 AVB: 단독 치료 불필요, 그러나 원인 파악(약물·심근염)과 2·3도로 진행 여부 추적 모니터링 필수"},
+
+{type:'clinical',cat:"심전도·부정맥",diff:3,title:"Torsades de Pointes(TdP) 의심",tag:"응급★★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"김○○",age:"65세 여",room:"302호",dx:"항생제(Azithromycin) 투여 중, QTc 0.52초"},
+ vitals:[{l:"HR",v:"220",u:"/분",c:"vd"},{l:"BP",v:"78/46",u:"mmHg",c:"vd"},{l:"K⁺",v:"2.8",u:"mEq/L",c:"vd"},{l:"의식",v:"저하",u:"",c:"vd"}],
+ ecg:"vf",
+ situation:"갑자기 실신. 모니터에서 QRS 파형이 기저선 주위로 뒤틀리는 형태. 항생제 투여 후 QTc 0.52초였던 환자.",
+ nurse:"\"파형이 위아래로 꼬여 보여요. 일반 VF랑 달라 보이는데요?\"",
+ choices:[
+   {t:"코드 블루 + CPR + Magnesium Sulfate 2g IV 투여 + QT 연장 약물 즉시 중단",ok:true},
+   {t:"일반 VF와 동일하게 Amiodarone 300mg 투여",ok:false},
+   {t:"Lidocaine IV 투여",ok:false},
+   {t:"즉각 비동기 제세동 후 항부정맥제 투여",ok:false}
+ ],
+ okFb:"정확합니다! TdP는 일반 VF와 치료가 다릅니다. Mg²⁺ 투여가 1차 치료이며, Amiodarone은 QT 연장시켜 오히려 악화됩니다.",
+ failFb:"TdP에 Amiodarone은 금기! QT를 더 연장시킵니다. 1차 치료는 Magnesium Sulfate 2g IV입니다.",
+ key:"TdP: 1차 치료 Magnesium Sulfate 2g IV. Amiodarone·Quinidine 등 QT 연장 약물 금기. 유발 약물 중단"},
+
+{type:'clinical',cat:"심전도·부정맥",diff:2,title:"빈맥 — 원인 감별",tag:"주의★★",tagColor:"#E65100",tagBg:"#FFF3E0",
+ patient:{name:"이○○",age:"35세 여",room:"318호",dx:"폐렴 치료 중, 발열 38.9℃"},
+ vitals:[{l:"HR",v:"118",u:"/분",c:"vw"},{l:"BP",v:"108/70",u:"mmHg",c:"vn"},{l:"BT",v:"38.9",u:"℃",c:"vd"},{l:"SpO₂",v:"96",u:"%",c:"vn"}],
+ ecg:"tachy",
+ situation:"오후 갑자기 심박수 상승. 환자는 '심장이 빨리 뛰는 것 같다'고 함. 규칙적인 빈맥, QRS 좁음.",
+ nurse:"\"열이 있는 환자인데 갑자기 HR이 118로 올랐어요. 어떻게 볼까요?\"",
+ choices:[
+   {t:"발열 원인 치료(해열제·항생제 유지)가 우선, 12유도 ECG로 기저 부정맥 감별 후 필요 시 보고",ok:true},
+   {t:"즉각 항부정맥제 투여",ok:false},
+   {t:"즉각 심장내과 응급 협진 의뢰",ok:false},
+   {t:"베타차단제 투여 후 경과 관찰",ok:false}
+ ],
+ okFb:"정확합니다! 발열에 의한 동성 빈맥은 원인 치료가 우선. 즉각 항부정맥제는 과잉 처치입니다.",
+ failFb:"발열+빈맥 조합에서 동성 빈맥이 가장 흔한 원인. 원인 교정 없이 항부정맥제만 투여하면 혈압 저하 위험.",
+ key:"빈맥 감별: 좁은 QRS 규칙적 빈맥 + 발열 = 동성 빈맥 가능성 높음. 원인 교정 먼저, 지속·혈역학 불안정 시 추가 평가"},
+
+{type:'clinical',cat:"심전도·부정맥",diff:3,title:"PVC Bigeminy — 전해질 확인",tag:"주의★★",tagColor:"#BF6000",tagBg:"#FFFDE7",
+ patient:{name:"강○○",age:"61세 남",room:"309호",dx:"심부전 치료 중, Furosemide 복용"},
+ vitals:[{l:"HR",v:"72",u:"/분(기저)",c:"vn"},{l:"K⁺",v:"3.0",u:"mEq/L",c:"vd"},{l:"Mg²⁺",v:"0.7",u:"mEq/L",c:"vd"},{l:"BP",v:"128/78",u:"mmHg",c:"vn"}],
+ ecg:"pvc",
+ situation:"정상 박동과 넓은 기이한 QRS가 교대로 반복. 환자는 두근거림 호소. 이뇨제 복용 중.",
+ nurse:"\"모니터에서 정상 박동 뒤에 이상한 박동이 번갈아 나와요. Bigeminy 맞죠?\"",
+ choices:[
+   {t:"K⁺·Mg²⁺ 교정 오더 + 담당의 보고 + 지속 모니터링",ok:true},
+   {t:"Lidocaine IV 즉시 투여",ok:false},
+   {t:"이뇨제(Furosemide)를 증량한다",ok:false},
+   {t:"단발성 PVC이므로 관찰 불필요",ok:false}
+ ],
+ okFb:"정확합니다! Furosemide 복용 환자의 저칼륨·저마그네슘 = PVC 주요 유발 원인. 전해질 교정이 1차 치료.",
+ failFb:"Bigeminy의 원인이 전해질 불균형일 때 Lidocaine이나 이뇨제 증량은 오히려 악화. 전해질 교정이 먼저.",
+ key:"PVC 유발 인자: 저K⁺·저Mg²⁺(이뇨제), 저산소증, 카페인, 심근허혈. 이뇨제 복용 환자는 전해질 항상 확인"},
+
+{type:'clinical',cat:"심전도·부정맥",diff:3,title:"심박동기 환자 — 페이싱 실패",tag:"응급★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"오○○",age:"79세 남",room:"303호",dx:"영구 심박동기 삽입 후 3년, 완전 방실차단"},
+ vitals:[{l:"HR",v:"28",u:"/분",c:"vd"},{l:"BP",v:"72/44",u:"mmHg",c:"vd"},{l:"SpO₂",v:"88",u:"%",c:"vd"},{l:"의식",v:"저하",u:"",c:"vd"}],
+ ecg:"brady",
+ situation:"평소 HR 60회/분으로 잘 유지되던 환자. 갑자기 HR 28, 혈압 저하, 의식 저하. 페이서 스파이크가 보이지 않음.",
+ nurse:"\"페이서 스파이크가 안 보여요. 페이싱 실패인 것 같아요!\"",
+ choices:[
+   {t:"즉각 응급 콜 + 경피적 임시 페이싱 준비 + Atropine IV + 심박동기 팀 응급 콜",ok:true},
+   {t:"페이서 외부 자석을 흉부에 대본다",ok:false},
+   {t:"Dopamine 투여 후 경과 관찰",ok:false},
+   {t:"산소 투여 후 15분 대기",ok:false}
+ ],
+ okFb:"정확합니다! 페이싱 실패 + 혈역학 불안정 = 즉각 응급 대응. 경피적 페이싱 준비와 심박동기 전문팀 콜이 필요합니다.",
+ failFb:"페이싱 실패는 심박동기 배터리 방전·리드선 이탈이 원인일 수 있어 즉각 전문 처치가 필요합니다.",
+ key:"페이서 실패: 경피적 임시 페이싱 즉각 준비 + Atropine + 심박동기 팀 응급 콜. 산소·Dopamine만으론 부족"},
+
+// ──────────────────────────────────────────────────────
+// 카테고리 2: 패혈증·감염 (8문제)
+// ──────────────────────────────────────────────────────
+{type:'clinical',cat:"패혈증·감염",diff:2,title:"패혈증 의심 발열",tag:"응급★★★★",tagColor:"#4c1d95",tagBg:"#F5F3FF",
+ patient:{name:"홍○○",age:"71세 여",room:"311호",dx:"요로감염 치료 중"},
+ vitals:[{l:"BT",v:"39.4",u:"℃",c:"vd"},{l:"BP",v:"86/52",u:"mmHg",c:"vd"},{l:"HR",v:"118",u:"/분",c:"vw"},{l:"SpO₂",v:"93",u:"%",c:"vw"}],
+ ecg:"tachy",
+ situation:"오전 3:30, 고열·오한·핍뇨(2시간 15mL). qSOFA 3점. 혈압이 빠르게 떨어지고 있다.",
+ nurse:"\"체온 39.4도이고 혈압이 86/52로 많이 떨어졌어요. 소변도 거의 안 나와요.\"",
+ choices:[
+   {t:"혈액 배양 2세트(항생제 전) + 광범위 항생제 1시간 내 + Lactate 측정 + 수액 30mL/kg",ok:true},
+   {t:"해열제(Acetaminophen) 투여 후 30분 재측정",ok:false},
+   {t:"혈액 배양 결과 나오면 그때 항생제 투여",ok:false},
+   {t:"산소 투여만 하고 아침에 주치의 보고",ok:false}
+ ],
+ okFb:"완벽합니다! Sepsis 1-hour Bundle. 혈배양은 반드시 항생제 투여 전 채취해야 합니다.",
+ failFb:"패혈증은 즉각 Bundle 필요. 배양 결과를 기다리면 패혈성 쇼크로 진행됩니다.",
+ key:"Sepsis Bundle: ①혈배양(항생제 전!) ②항생제 1시간 내 ③Lactate ④수액 30mL/kg"},
+
+{type:'clinical',cat:"패혈증·감염",diff:3,title:"패혈성 쇼크 — 승압제 투여",tag:"응급★★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"최○○",age:"68세 남",room:"310호",dx:"패혈증, 수액 소생 1L 투여 후에도 MAP 58mmHg"},
+ vitals:[{l:"BP",v:"82/46",u:"mmHg",c:"vd"},{l:"MAP",v:"58",u:"mmHg",c:"vd"},{l:"HR",v:"126",u:"/분",c:"vd"},{l:"Lactate",v:"5.2",u:"mmol/L",c:"vd"}],
+ ecg:"tachy",
+ situation:"수액 30mL/kg 투여 후에도 MAP 65mmHg 미만 지속. Lactate 5.2. 피부 창백, 핍뇨.",
+ nurse:"\"수액 다 들어갔는데도 혈압이 안 올라요. 어떻게 해야 하나요?\"",
+ choices:[
+   {t:"Norepinephrine IV 투여 오더 + ICU 전동 준비 + 추가 수액 검토",ok:true},
+   {t:"수액을 추가로 1L 더 투여",ok:false},
+   {t:"Dopamine 경구 투여",ok:false},
+   {t:"Epinephrine 근주 투여",ok:false}
+ ],
+ okFb:"정확합니다! 수액 반응 없는 패혈성 쇼크의 1차 승압제는 Norepinephrine IV입니다. MAP 65mmHg 이상 목표.",
+ failFb:"수액에 반응 없을 때 추가 수액만 계속 주면 폐부종 위험. 1차 승압제 Norepinephrine 투여가 필요합니다.",
+ key:"패혈성 쇼크 승압제: Norepinephrine이 1차 선택. MAP ≥65mmHg 목표. 수액 불응성이면 즉시 승압제 시작"},
+
+{type:'clinical',cat:"패혈증·감염",diff:2,title:"수술 후 SSI(수술 부위 감염)",tag:"주의★★",tagColor:"#14532d",tagBg:"#F0FDF4",
+ patient:{name:"박○○",age:"55세 남",room:"317호",dx:"충수절제술 POD#4"},
+ vitals:[{l:"BT",v:"38.6",u:"℃",c:"vd"},{l:"WBC",v:"18,500",u:"/μL",c:"vd"},{l:"수술부위",v:"발적·화농",u:"",c:"vd"},{l:"BP",v:"122/78",u:"mmHg",c:"vn"}],
+ ecg:"normal",
+ situation:"수술 부위 발적, 부종, 농성 삼출물 관찰. BT 38.6℃, WBC 18,500. 환자 '수술 부위가 더 아프고 열이 난다'고 호소.",
+ nurse:"\"수술 창상에서 노란 분비물이 나오고 주변이 빨개요.\"",
+ choices:[
+   {t:"창상 사정 후 담당 외과 보고 + 창상 배양 검체 채취 + 상처 드레싱 시행",ok:true},
+   {t:"항생제 연고만 바르고 경과 관찰",ok:false},
+   {t:"드레싱만 교체하고 아침에 회진 시 보고",ok:false},
+   {t:"즉각 패혈증 bundle 시행",ok:false}
+ ],
+ okFb:"정확합니다! SSI는 창상 배양 채취 후 외과 보고가 우선. 배양 전 항생제 투여는 감수성 결과를 방해합니다.",
+ failFb:"SSI에서 항생제 연고만으로는 부족하고, 즉각 패혈증 Bundle은 과잉 처치입니다. 창상 배양 + 외과 보고가 우선.",
+ key:"SSI 대응: ①창상 사정 기록 ②배양 검체(항생제 전) ③담당 외과 보고 ④드레싱 시행"},
+
+{type:'clinical',cat:"패혈증·감염",diff:3,title:"C.difficile 감염 의심",tag:"주의★★★",tagColor:"#92400E",tagBg:"#FEF3C7",
+ patient:{name:"이○○",age:"78세 여",room:"314호",dx:"폐렴으로 Clindamycin 10일 투여 후"},
+ vitals:[{l:"BT",v:"38.2",u:"℃",c:"vw"},{l:"HR",v:"96",u:"/분",c:"vw"},{l:"배변",v:"하루 8회",u:"",c:"vd"},{l:"복통",v:"NRS 5",u:"",c:"vw"}],
+ ecg:"normal",
+ situation:"항생제 치료 후 수양성 설사 하루 8회, 복통, 발열. 악취 나는 녹황색 묽은 변.",
+ nurse:"\"항생제 치료 후 설사가 심해졌어요. C.diff 아닐까요?\"",
+ choices:[
+   {t:"격리 조치 + 접촉 주의(장갑·가운) + 의사 보고 + C.difficile 독소 검사 + Clindamycin 중단",ok:true},
+   {t:"지사제 투여 후 경과 관찰",ok:false},
+   {t:"정상 격리 절차 유지, 설사약 변경",ok:false},
+   {t:"항생제를 광범위 항생제로 교체",ok:false}
+ ],
+ okFb:"정확합니다! C.diff 의심 시 즉각 접촉 격리가 필수. 지사제는 독소 배출을 막아 금기입니다.",
+ failFb:"C.diff에 지사제는 절대 금기! 독소 체내 축적으로 독성 거대결장 위험. 즉각 격리와 독소 검사가 필요합니다.",
+ key:"C.diff: ①접촉 격리(알코올 손소독 불가, 비누로 손 씻기) ②지사제 금기 ③원인 항생제 중단 ④Vancomycin/Metronidazole"},
+
+{type:'clinical',cat:"패혈증·감염",diff:2,title:"중심정맥관 관련 혈류 감염(CLABSI)",tag:"주의★★★",tagColor:"#4c1d95",tagBg:"#F5F3FF",
+ patient:{name:"김○○",age:"62세 남",room:"302호",dx:"화학요법 중, 우측 쇄골하 CVC 삽입 8일째"},
+ vitals:[{l:"BT",v:"39.1",u:"℃",c:"vd"},{l:"HR",v:"112",u:"/분",c:"vw"},{l:"CVC 삽입부",v:"발적·부종",u:"",c:"vd"},{l:"BP",v:"102/64",u:"mmHg",c:"vw"}],
+ ecg:"tachy",
+ situation:"CVC 삽입 8일째, 삽입부 발적·부종. 다른 감염 원인 없는 38.9℃ 이상 발열.",
+ nurse:"\"CVC 삽입 부위가 빨개요. 혈류 감염 아닐까요?\"",
+ choices:[
+   {t:"CVC 통한 혈액 배양 + 말초 혈액 배양(동시) + 담당의 보고 + CVC 제거 검토",ok:true},
+   {t:"CVC 부위 항생제 연고 도포 후 경과 관찰",ok:false},
+   {t:"해열제만 투여하고 배양 결과 기다린다",ok:false},
+   {t:"CVC를 즉각 제거하고 새 CVC를 반대편에 삽입",ok:false}
+ ],
+ okFb:"정확합니다! CLABSI 의심 시 CVC + 말초 동시 혈액 배양이 핵심. CVC 즉각 제거는 의사 판단 사항입니다.",
+ failFb:"연고만 바르거나 해열제만으로는 CLABSI 치료가 안 됩니다. CVC 제거 여부는 의사가 판단합니다.",
+ key:"CLABSI: CVC + 말초 혈액 배양 동시 채취 → 의사 보고 → CVC 제거 판단 → 항생제 투여"},
+
+{type:'clinical',cat:"패혈증·감염",diff:3,title:"중성구감소증 발열(Febrile Neutropenia)",tag:"응급★★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"이○○",age:"48세 여",room:"313호",dx:"유방암 항암치료 후 7일, ANC 200/μL"},
+ vitals:[{l:"BT",v:"38.4",u:"℃",c:"vd"},{l:"ANC",v:"200",u:"/μL",c:"vd"},{l:"HR",v:"108",u:"/분",c:"vw"},{l:"BP",v:"108/70",u:"mmHg",c:"vn"}],
+ ecg:"tachy",
+ situation:"항암치료 후 7일. ANC 200/μL(중증 중성구감소증). 체온 38.4℃. 명확한 감염 부위 없음.",
+ nurse:"\"항암 후 열이 나는데 ANC가 200이에요. 위험한 건가요?\"",
+ choices:[
+   {t:"즉각 혈액 배양 2세트 + 광범위 항생제(Piperacillin/Tazobactam 등) 1시간 내 투여 + 담당의 보고",ok:true},
+   {t:"해열제 투여 후 ANC 수치 회복을 기다린다",ok:false},
+   {t:"격리만 시행하고 배양 결과 기다린다",ok:false},
+   {t:"경구 항생제 처방 후 외래 추적",ok:false}
+ ],
+ okFb:"정확합니다! FN(Febrile Neutropenia)은 응급. 1시간 내 항생제 투여가 사망률을 결정합니다.",
+ failFb:"FN은 즉각 광범위 항생제 투여가 필요한 응급. 해열제만·기다리는 것은 패혈증 진행 위험입니다.",
+ key:"FN: ANC<500+발열 = 응급. 1시간 내 광범위 항생제 투여(혈배양 후). 지연 시 사망률 급격 상승"},
+
+{type:'clinical',cat:"패혈증·감염",diff:2,title:"수술 후 폐렴 의심",tag:"주의★★★",tagColor:"#0277BD",tagBg:"#E1F5FE",
+ patient:{name:"최○○",age:"70세 남",room:"319호",dx:"대장절제술 POD#3, 통증으로 심호흡 기피"},
+ vitals:[{l:"BT",v:"38.3",u:"℃",c:"vd"},{l:"SpO₂",v:"91",u:"%",c:"vd"},{l:"HR",v:"108",u:"/분",c:"vw"},{l:"RR",v:"24",u:"/분",c:"vw"}],
+ ecg:"tachy",
+ situation:"POD#3. 통증으로 심호흡 기피, 기침 없이 누워만 있었음. SpO₂ 91%, 발열, 우하엽 청진음 감소.",
+ nurse:"\"숨을 깊게 쉬기 싫다고 해서 계속 누워만 있었는데 열이 나고 산소가 떨어져요.\"",
+ choices:[
+   {t:"산소 투여 + 담당의 보고 + 흉부 X선 + 객담 배양 + 호흡 운동 격려 + 통증 조절 강화",ok:true},
+   {t:"해열제만 투여 후 경과 관찰",ok:false},
+   {t:"기관 내 삽관 준비",ok:false},
+   {t:"항생제 연무 흡입 치료만 시행",ok:false}
+ ],
+ okFb:"정확합니다! 수술 후 무기폐→폐렴은 통증 조절 강화 + 심호흡 격려가 예방·치료의 핵심입니다.",
+ failFb:"즉각 삽관은 과잉 처치. 우선 산소 투여 + 흉부 X선 + 통증 조절 강화로 심호흡을 유도해야 합니다.",
+ key:"수술 후 폐렴 예방: 통증 조절 → 심호흡·기침 격려 → 조기 보행. 이미 발생 시 산소+항생제+호흡치료"},
+
+{type:'clinical',cat:"패혈증·감염",diff:3,title:"항생제 부작용 — 아나필락시스",tag:"응급★★★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"박○○",age:"43세 여",room:"320호",dx:"신규 항생제(Penicillin) 투여 시작 5분 후"},
+ vitals:[{l:"BP",v:"74/42",u:"mmHg",c:"vd"},{l:"HR",v:"128",u:"/분",c:"vd"},{l:"SpO₂",v:"88",u:"%",c:"vd"},{l:"피부",v:"두드러기",u:"",c:"vd"}],
+ ecg:"tachy",
+ situation:"항생제 투여 5분 후 갑자기 두드러기, 얼굴 부종, 호흡곤란, 혈압 급락. 환자 '숨이 막혀요'.",
+ nurse:"\"항생제 맞고 갑자기 두드러기가 나고 혈압이 떨어졌어요!\"",
+ choices:[
+   {t:"항생제 즉시 중단 + Epinephrine 0.5mg 대퇴 외측 근주 + 응급 콜 + 앙와위 + 산소 투여",ok:true},
+   {t:"항히스타민제(Diphenhydramine) IV 먼저 투여",ok:false},
+   {t:"스테로이드(Hydrocortisone) IV 먼저 투여",ok:false},
+   {t:"항생제 속도만 줄이고 경과 관찰",ok:false}
+ ],
+ okFb:"완벽합니다! 아나필락시스 1차 치료는 Epinephrine 근주. 항히스타민·스테로이드는 2차 치료입니다.",
+ failFb:"아나필락시스에서 항히스타민·스테로이드 먼저는 오류! 1차는 반드시 Epinephrine 0.5mg 대퇴 외측 근주.",
+ key:"아나필락시스 1차: Epinephrine 0.5mg IM(대퇴 외측). 항히스타민·스테로이드는 2차. 항생제 즉시 중단"},
+
+// ──────────────────────────────────────────────────────
+// 카테고리 3: 낙상·외상 (8문제)
+// ──────────────────────────────────────────────────────
+{type:'clinical',cat:"낙상·외상",diff:2,title:"낙상 후 의식 저하",tag:"응급★★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"박○○",age:"67세 남",room:"309호",dx:"Warfarin 복용(INR 2.8), 고혈압"},
+ vitals:[{l:"BP",v:"168/96",u:"mmHg",c:"vd"},{l:"HR",v:"58",u:"/분",c:"vw"},{l:"GCS",v:"11점",u:"",c:"vd"},{l:"동공",v:"불균등",u:"",c:"vd"}],
+ ecg:"brady",
+ situation:"화장실 낙상 후 우측 측두부 혈종. 의식이 점점 저하. 항응고제 복용 중.",
+ nurse:"\"아까보다 더 처진 것 같아요. 동공도 좌우가 달라요.\"",
+ choices:[
+   {t:"즉각 응급 콜 + 두부 CT 오더 + 응급 혈액검사(INR) + Vit K IV + FFP 준비",ok:true},
+   {t:"낙상 부위 드레싱 후 아침에 주치의 보고",ok:false},
+   {t:"활력징후 30분마다 모니터링",ok:false},
+   {t:"진통제 투여 후 안정시키고 관찰",ok:false}
+ ],
+ okFb:"정확합니다! 동공 불균등+의식 저하+항응고제 = 두개내출혈 응급. Cushing Triad(고혈압·서맥)도 보입니다.",
+ failFb:"낙상+의식 저하+항응고제 = 두개내출혈 응급! 아침까지 기다리면 절대 안 됩니다.",
+ key:"Cushing Triad: 고혈압+서맥+불규칙 호흡 = 뇌압 상승. 동공 불균등 → 즉각 신경외과 콜. 항응고제 즉시 역전"},
+
+{type:'clinical',cat:"낙상·외상",diff:2,title:"낙상 후 고관절 통증",tag:"주의★★★",tagColor:"#1565C0",tagBg:"#E3F2FD",
+ patient:{name:"이○○",age:"82세 여",room:"302호",dx:"폐렴 치료 중, 골다공증, Zolpidem 복용"},
+ vitals:[{l:"BP",v:"132/80",u:"mmHg",c:"vn"},{l:"HR",v:"90",u:"/분",c:"vn"},{l:"통증",v:"NRS 8",u:"",c:"vd"},{l:"하지",v:"단축·외회전",u:"",c:"vd"}],
+ ecg:"normal",
+ situation:"야간 화장실 이동 중 낙상. 우측 고관절 통증 NRS 8, 우측 하지 단축·외회전 변형 관찰.",
+ nurse:"\"오른쪽 다리가 짧아 보이고 밖으로 돌아가 있어요. 골절인가요?\"",
+ choices:[
+   {t:"이동 금지 + 우측 고관절 X선 오더 + Acetaminophen IV + 정형외과 협진 + 낙상 보고",ok:true},
+   {t:"환자를 바로 침대로 이동시킨다",ok:false},
+   {t:"외회전 변형을 교정하여 정렬을 맞춘다",ok:false},
+   {t:"X선 결과 나올 때까지 진통제 투여 금지",ok:false}
+ ],
+ okFb:"정확합니다! 하지 단축·외회전 = 대퇴골 경부 골절 의심. 함부로 움직이면 손상 악화 및 혈관 손상 위험.",
+ failFb:"골절 의심 시 함부로 이동·교정 절대 금지! 즉각 고정 후 X선 시행이 우선입니다.",
+ key:"대퇴골 경부 골절 징후: 하지 단축+외회전. 함부로 이동·교정 금지. Zolpidem 등 수면제는 낙상 위험 증가"},
+
+{type:'clinical',cat:"낙상·외상",diff:3,title:"낙상 사고 보고 절차",tag:"주의★★",tagColor:"#475569",tagBg:"#F1F5F9",
+ patient:{name:"강○○",age:"75세 남",room:"315호",dx:"낙상 고위험(Morse 70점)"},
+ vitals:[{l:"의식",v:"명확",u:"",c:"vn"},{l:"BP",v:"128/76",u:"mmHg",c:"vn"},{l:"통증",v:"없음",u:"",c:"vn"},{l:"외상",v:"없음",u:"",c:"vn"}],
+ ecg:"normal",
+ situation:"화장실에서 혼자 일어나다 미끄러져 엉덩방아. 외관상 외상 없고 통증 없음. 의식 명확.",
+ nurse:"\"낙상 자체는 경미한 것 같아요. 어떻게 처리해야 하나요?\"",
+ choices:[
+   {t:"활력징후·신체 사정 + 의사 보고 + 낙상 사고 보고 시스템 입력 + 보호자 연락 + 간호 기록",ok:true},
+   {t:"경미하므로 기록 없이 경과 관찰",ok:false},
+   {t:"보호자에게만 알리고 의사 보고 생략",ok:false},
+   {t:"의사 보고 후 다른 절차 없이 마무리",ok:false}
+ ],
+ okFb:"정확합니다! 경미한 낙상도 반드시 의사 보고 + 사고 보고 시스템 입력 + 보호자 연락 + 간호 기록이 모두 필요합니다.",
+ failFb:"경미해도 낙상은 반드시 기록하고 보고해야 합니다. 숨기거나 일부만 보고하면 법적·의료적 문제가 생깁니다.",
+ key:"낙상 후 무조건: ①즉각 사정 ②의사 보고 ③사고 보고 시스템 입력 ④보호자 연락 ⑤간호 기록. 경미해도 생략 불가"},
+
+{type:'clinical',cat:"낙상·외상",diff:2,title:"낙상 예방 — 고위험 환자 대응",tag:"주의★★",tagColor:"#475569",tagBg:"#F1F5F9",
+ patient:{name:"오○○",age:"78세 여",room:"316호",dx:"Morse Fall Scale 75점, 치매, 진정제 복용"},
+ vitals:[{l:"의식",v:"혼돈",u:"",c:"vw"},{l:"보행",v:"불안정",u:"",c:"vd"},{l:"약물",v:"Lorazepam",u:"복용 중",c:"vd"},{l:"낙상력",v:"1회",u:"",c:"vd"}],
+ ecg:"normal",
+ situation:"야간 순회 중 환자가 침대 난간을 내리고 혼자 일어나려 한다. 진정제 복용 중. '화장실 가야 해'라고 소리침.",
+ nurse:"\"또 일어나려고 해요. 어떻게 해야 하나요?\"",
+ choices:[
+   {t:"즉각 배뇨 도움 제공 + 침대 최저 위치 + 난간 올리기 + 콜벨 손에 쥐어주기 + 야간 조명 켜기",ok:true},
+   {t:"억제대를 즉시 적용한다",ok:false},
+   {t:"진정제를 추가 투여한다",ok:false},
+   {t:"안전하므로 잠시 경과 관찰한다",ok:false}
+ ],
+ okFb:"정확합니다! 억제대는 최후 수단이며 동의서 필요. 배뇨 도움이 낙상을 예방하는 가장 좋은 방법입니다.",
+ failFb:"억제대·진정제 추가는 부적절. 욕구(배뇨) 해결이 낙상 예방의 핵심입니다.",
+ key:"낙상 고위험: 배뇨 욕구 먼저 해결 + 환경 안전. 억제대는 최후 수단이며 동의서·주기적 해제 필수"},
+
+{type:'clinical',cat:"낙상·외상",diff:3,title:"두부 외상 후 지연성 출혈",tag:"응급★★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"최○○",age:"71세 남",room:"307호",dx:"두부 외상 CT 이상 없었음(6시간 전), 항혈소판제 복용"},
+ vitals:[{l:"의식",v:"저하",u:"",c:"vd"},{l:"BP",v:"172/98",u:"mmHg",c:"vd"},{l:"HR",v:"54",u:"/분",c:"vw"},{l:"두통",v:"NRS 9",u:"",c:"vd"}],
+ ecg:"brady",
+ situation:"6시간 전 CT 이상 없었던 환자. 갑자기 심한 두통 NRS 9와 함께 의식 저하. 항혈소판제 복용 중.",
+ nurse:"\"아까까지 괜찮았는데 갑자기 두통이 심하고 처져요. CT는 6시간 전에 찍었거든요.\"",
+ choices:[
+   {t:"즉각 응급 콜 + 응급 두부 CT 재촬영 + 신경외과 협진 + 항혈소판제 중단",ok:true},
+   {t:"6시간 전 CT 이상 없었으므로 경과 관찰",ok:false},
+   {t:"진통제 투여 후 통증 조절",ok:false},
+   {t:"혈압만 조절하고 아침에 재평가",ok:false}
+ ],
+ okFb:"정확합니다! 지연성 두개내출혈은 초기 CT 정상이어도 수 시간 후 발생 가능. 항혈소판제 복용자는 더 위험합니다.",
+ failFb:"초기 CT 정상이어도 지연성 출혈은 발생합니다. 의식 변화+두통=즉각 재평가 필요.",
+ key:"지연성 두개내출혈: 초기 CT 정상도 안심 불가. 항혈소판제/항응고제 복용자는 더 위험. 증상 변화 시 즉각 재CT"},
+
+{type:'clinical',cat:"낙상·외상",diff:2,title:"척추 손상 의심 환자 이동",tag:"응급★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"이○○",age:"55세 남",room:"응급복도",dx:"계단에서 굴러 떨어짐, 경추 통증"},
+ vitals:[{l:"의식",v:"명확",u:"",c:"vn"},{l:"BP",v:"118/74",u:"mmHg",c:"vn"},{l:"경추",v:"통증·저림",u:"",c:"vd"},{l:"사지",v:"감각저하",u:"",c:"vd"}],
+ ecg:"normal",
+ situation:"계단에서 굴러 떨어진 환자. 경추 통증과 양측 손·발 저림 호소. 의식 명확.",
+ nurse:"\"스스로 걸어오려고 하는데 경추가 아프다고 해요.\"",
+ choices:[
+   {t:"즉각 이동 중지 + 경추 고정(서비칼 칼라) + 척추 전체 고정 후 스트레처로 이동",ok:true},
+   {t:"천천히 부축해서 걸어오게 한다",ok:false},
+   {t:"의자에 앉혀서 대기시킨다",ok:false},
+   {t:"환자가 의식 명확하므로 스스로 이동 가능",ok:false}
+ ],
+ okFb:"정확합니다! 척추 손상 의심 시 무조건 이동 중지 + 경추 고정. 부적절한 이동은 완전 마비로 진행할 수 있습니다.",
+ failFb:"척추 손상 의심 시 절대 걷게·앉히지 마세요! 경추 고정 + 척추 전체 고정 후 이동이 필수입니다.",
+ key:"척추 손상 의심: 이동 중지 → 경추 칼라 고정 → 척추 전체 고정(logroll 원칙) → 스트레처 이동"},
+
+{type:'clinical',cat:"낙상·외상",diff:3,title:"낙상 후 무릎 통증 — 혈전 감별",tag:"주의★★",tagColor:"#475569",tagBg:"#F1F5F9",
+ patient:{name:"박○○",age:"64세 여",room:"311호",dx:"슬관절 수술 POD#5, 낙상 후"},
+ vitals:[{l:"하지",v:"부종·발적",u:"",c:"vd"},{l:"통증",v:"NRS 6",u:"",c:"vw"},{l:"HR",v:"92",u:"/분",c:"vn"},{l:"SpO₂",v:"97",u:"%",c:"vn"}],
+ ecg:"normal",
+ situation:"수술 5일 후 낙상. 우측 하지 부종·발적·압통. 수술 후 DVT 예방 헤파린 복용 중.",
+ nurse:"\"낙상 맞은 부위가 붓고 빨개요. 낙상 때문인지 혈전 때문인지 모르겠어요.\"",
+ choices:[
+   {t:"담당의 보고 + 하지 도플러 초음파 검사 오더 + D-dimer 검사 + 하지 거상 + 압박 금지",ok:true},
+   {t:"냉찜질 후 경과 관찰",ok:false},
+   {t:"탄력 스타킹 즉시 적용",ok:false},
+   {t:"헤파린 용량 증량",ok:false}
+ ],
+ okFb:"정확합니다! 수술 후 하지 부종+발적 = DVT 배제 필요. DVT 의심 시 마사지·압박 금지(혈전 이동 위험).",
+ failFb:"수술 후 하지 부종+발적에 탄력 스타킹·마사지는 DVT 혈전 이동 위험. 먼저 도플러 초음파로 DVT 배제가 필요.",
+ key:"수술 후 하지 부종+발적 = DVT 의심. 압박·마사지 금지. 도플러 초음파 + D-dimer 검사 먼저"},
+
+{type:'clinical',cat:"낙상·외상",diff:2,title:"고령 환자 욕창 발생",tag:"주의★★",tagColor:"#92400E",tagBg:"#FEF3C7",
+ patient:{name:"김○○",age:"86세 여",room:"317호",dx:"뇌졸중 후 침상 생활 2주"},
+ vitals:[{l:"욕창",v:"꼬리뼈 Stage2",u:"",c:"vd"},{l:"영양상태",v:"불량",u:"",c:"vd"},{l:"의식",v:"명확",u:"",c:"vn"},{l:"BT",v:"37.2",u:"℃",c:"vn"}],
+ ecg:"normal",
+ situation:"꼬리뼈 부위에 2단계 욕창 발견. 직경 3cm, 얕은 개방성 궤양. 2주 전부터 침상 생활.",
+ nurse:"\"꼬리뼈 쪽에 욕창이 생겼어요. 습윤 드레싱 하면 되나요?\"",
+ choices:[
+   {t:"욕창 사정 기록 + 습윤 드레싱 적용 + 체위 변경 2시간마다 + 영양 평가 + 담당의 보고",ok:true},
+   {t:"일반 거즈 드레싱만 시행",ok:false},
+   {t:"빠른 치유를 위해 드라이(건조) 드레싱 적용",ok:false},
+   {t:"자연 치유되도록 드레싱 없이 공기 노출",ok:false}
+ ],
+ okFb:"정확합니다! Stage 2 욕창에는 습윤 드레싱이 표준. 2시간마다 체위 변경과 영양 관리가 필수입니다.",
+ failFb:"욕창에 건조 드레싱이나 공기 노출은 오히려 치유를 방해합니다. 습윤 환경 유지가 현대 상처 관리의 기본.",
+ key:"Stage 2 욕창: 습윤 드레싱 + 2시간마다 체위 변경 + 영양 강화. 건조 드레싱·공기 노출 금지"},
+
+// ──────────────────────────────────────────────────────
+// 카테고리 4: 수혈·투약 오류 (8문제)
+// ──────────────────────────────────────────────────────
+{type:'clinical',cat:"수혈·투약",diff:2,title:"수혈 중 발열·오한",tag:"주의★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"김○○",age:"58세 남",room:"307호",dx:"위암 수술 POD#2, pRBC 수혈 중"},
+ vitals:[{l:"BT",v:"38.7",u:"℃",c:"vd"},{l:"BP",v:"108/68",u:"mmHg",c:"vw"},{l:"HR",v:"106",u:"/분",c:"vw"},{l:"SpO₂",v:"96",u:"%",c:"vn"}],
+ ecg:"tachy",
+ situation:"수혈 시작 20분 후, 80mL 주입. '몸이 떨리고 등이 아프다'.",
+ nurse:"\"수혈 부작용 같아요. 어떻게 해야 하나요?\"",
+ choices:[
+   {t:"수혈 즉시 중단 + 생리식염수 IV 유지 + 혈액백 보존 + 의사 보고 + 소변 색 확인",ok:true},
+   {t:"수혈 속도만 줄이고 경과 관찰",ok:false},
+   {t:"해열제 투여 후 수혈 계속 진행",ok:false},
+   {t:"수혈 백을 바꾸고 새 혈액으로 즉시 교체",ok:false}
+ ],
+ okFb:"정확합니다! 수혈 부작용 시 즉시 중단. 혈액백 보존은 필수 — 혈액은행 원인 분석에 필요합니다.",
+ failFb:"수혈 부작용 시 즉시 중단이 최우선! 속도만 줄이거나 계속 투여하면 급성 용혈 반응으로 진행됩니다.",
+ key:"수혈 반응: ①즉시 중단 ②생리식염수 유지(별도 라인) ③혈액백 보존 ④혈액은행 보고 ⑤소변 색(혈뇨=용혈)"},
+
+{type:'clinical',cat:"수혈·투약",diff:3,title:"인슐린 투약 오류 — 저혈당",tag:"응급★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"이○○",age:"62세 남",room:"308호",dx:"당뇨, 속효성 인슐린 20단위 처방에 200단위 투여"},
+ vitals:[{l:"혈당",v:"32",u:"mg/dL",c:"vd"},{l:"의식",v:"저하",u:"",c:"vd"},{l:"HR",v:"112",u:"/분",c:"vd"},{l:"BP",v:"102/64",u:"mmHg",c:"vw"}],
+ ecg:"tachy",
+ situation:"인슐린 투여 후 환자 의식 저하. 혈당 32mg/dL. 10배 용량 오투여 확인.",
+ nurse:"\"인슐린을 20단위 줘야 했는데 200단위 준 것 같아요. 지금 의식이 없어요!\"",
+ choices:[
+   {t:"50% Dextrose 50mL IV push + 즉각 응급 콜 + 혈당 모니터링 15분마다 + 투약 오류 보고",ok:true},
+   {t:"경구 포도당 섭취 유도",ok:false},
+   {t:"Glucagon 경구 투여",ok:false},
+   {t:"인슐린 길항제 투여",ok:false}
+ ],
+ okFb:"정확합니다! 의식 없는 중증 저혈당 = 50% Dextrose IV가 1차. 경구 섭취는 의식 없을 때 기도 흡인 위험.",
+ failFb:"의식 없는 환자에게 경구 투여는 금기. 즉각 50% Dextrose IV가 필요합니다. Glucagon 경구는 없습니다.",
+ key:"의식 없는 저혈당: 50% Dextrose 50mL IV push 즉각. 경구 투여는 의식 있을 때만. 투약 오류는 반드시 보고"},
+
+{type:'clinical',cat:"수혈·투약",diff:3,title:"헤파린 과용량 — 출혈",tag:"응급★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"박○○",age:"68세 여",room:"310호",dx:"DVT 치료 중, Heparin IV 주입"},
+ vitals:[{l:"BP",v:"88/54",u:"mmHg",c:"vd"},{l:"aPTT",v:"250초",u:"",c:"vd"},{l:"소변",v:"혈뇨",u:"",c:"vd"},{l:"혈변",v:"흑색변",u:"",c:"vd"}],
+ ecg:"tachy",
+ situation:"Heparin 주입 중 혈뇨, 흑색변, 혈압 저하. aPTT 250초(정상 25~35초).",
+ nurse:"\"혈뇨가 나오고 혈압이 떨어졌어요. 헤파린 과다 아닐까요?\"",
+ choices:[
+   {t:"헤파린 즉시 중단 + Protamine sulfate 투여 오더 + 응급 콜 + CBC·aPTT 재검 + 수혈 준비",ok:true},
+   {t:"헤파린 속도만 줄이고 경과 관찰",ok:false},
+   {t:"Vitamin K 투여",ok:false},
+   {t:"FFP만 투여하고 헤파린 유지",ok:false}
+ ],
+ okFb:"정확합니다! 헤파린 과용량 길항제는 Protamine sulfate. Vitamin K는 Warfarin 길항제입니다.",
+ failFb:"헤파린 길항제는 Protamine sulfate. Vitamin K는 Warfarin에 사용하는 것입니다. 즉각 중단이 최우선.",
+ key:"헤파린 과용량: 즉시 중단 + Protamine sulfate(길항제). Warfarin 과용량: Vitamin K + FFP. 혼동 주의"},
+
+{type:'clinical',cat:"수혈·투약",diff:2,title:"마약성 진통제 과용량",tag:"응급★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"최○○",age:"55세 남",room:"312호",dx:"복부 수술 후, Morphine PCA 사용 중"},
+ vitals:[{l:"RR",v:"6",u:"/분",c:"vd"},{l:"SpO₂",v:"82",u:"%",c:"vd"},{l:"의식",v:"기면",u:"",c:"vd"},{l:"동공",v:"핀포인트",u:"",c:"vd"}],
+ ecg:"normal",
+ situation:"오피오이드 PCA 사용 중 환자 기면. RR 6회/분, SpO₂ 82%, 동공 핀포인트.",
+ nurse:"\"환자가 계속 잠만 자고 숨도 느려요. 동공도 이상해요.\"",
+ choices:[
+   {t:"PCA 즉시 중단 + Naloxone 0.4mg IV + 100% 산소 투여 + 응급 콜 + 호흡 모니터링",ok:true},
+   {t:"환자를 깨우고 심호흡 유도",ok:false},
+   {t:"산소만 투여하고 30분 경과 관찰",ok:false},
+   {t:"Flumazenil 투여",ok:false}
+ ],
+ okFb:"정확합니다! 오피오이드 과용량 길항제 = Naloxone. Flumazenil은 벤조디아제핀 길항제입니다.",
+ failFb:"핀포인트 동공+서호흡+기면 = 오피오이드 과용량. 즉각 Naloxone 투여 필요. Flumazenil은 다른 약물 길항제.",
+ key:"오피오이드 3징후: 핀포인트 동공+서호흡+의식 저하. 길항제: Naloxone. 벤조 길항제: Flumazenil"},
+
+{type:'clinical',cat:"수혈·투약",diff:3,title:"항응고제 변경 — 교량 요법",tag:"주의★★",tagColor:"#0277BD",tagBg:"#E1F5FE",
+ patient:{name:"이○○",age:"72세 남",room:"306호",dx:"심방세동, Warfarin 복용 중 수술 전 교량 요법"},
+ vitals:[{l:"INR",v:"1.2",u:"",c:"vn"},{l:"수술",v:"내일",u:"예정",c:"vw"},{l:"헤파린",v:"중단",u:"여부?",c:"vd"},{l:"BP",v:"132/82",u:"mmHg",c:"vn"}],
+ ecg:"normal",
+ situation:"수술 전날. INR 1.2로 목표 달성. 수술 4~6시간 전 헤파린 중단 지시 미기재.",
+ nurse:"\"내일 수술인데 헤파린 중단 오더가 없어요. 어떻게 해야 하나요?\"",
+ choices:[
+   {t:"담당의에게 즉각 확인 + 미기재 오더 구두로 확인 + 재확인 서명 받기 + 수술 팀 통보",ok:true},
+   {t:"수술 4시간 전에 간호사 판단으로 중단",ok:false},
+   {t:"헤파린 계속 투여하고 수술 진행",ok:false},
+   {t:"다음 날 아침 수술 담당의가 알아서 할 것이므로 대기",ok:false}
+ ],
+ okFb:"정확합니다! 오더 미기재는 반드시 담당의에게 확인 후 구두 오더 + 서명을 받아야 합니다. 간호사 임의 판단 금지.",
+ failFb:"헤파린 중단은 반드시 의사 오더가 필요합니다. 간호사 임의 중단·계속 투여 모두 위험합니다.",
+ key:"오더 불명확 시: 담당의 즉각 확인 → 구두 오더 + 재확인 서명 필수. 간호사 임의 투약 변경 절대 금지"},
+
+{type:'clinical',cat:"수혈·투약",diff:2,title:"투약 5Right 오류 예방",tag:"주의★★",tagColor:"#475569",tagBg:"#F1F5F9",
+ patient:{name:"박○○",age:"60세 여",room:"309호",dx:"당뇨+고혈압"},
+ vitals:[{l:"혈당",v:"280",u:"mg/dL",c:"vd"},{l:"BP",v:"152/94",u:"mmHg",c:"vw"},{l:"HR",v:"82",u:"/분",c:"vn"},{l:"BT",v:"36.7",u:"℃",c:"vn"}],
+ ecg:"normal",
+ situation:"인슐린 투여 전, 준비 시 약 이름 확인 중 '속효성(Novorapid)'과 '지속형(Lantus)' 앰플이 나란히 있음.",
+ nurse:"\"혈당이 높아서 속효성 인슐린 줘야 하는데 두 종류가 비슷하게 생겼어요.\"",
+ choices:[
+   {t:"처방전과 약 이름·용량·경로·시간·환자를 재확인 후 투여. 혼탁 인슐린은 흔들어 균일하게",ok:true},
+   {t:"외관이 비슷하면 아무거나 투여해도 무방",ok:false},
+   {t:"급하니까 빨리 속효성 앰플처럼 보이는 것으로 투여",ok:false},
+   {t:"선배 간호사에게 맡기고 자리를 피한다",ok:false}
+ ],
+ okFb:"정확합니다! Look-alike 약물은 5Right 재확인이 필수. 속효성=맑음, 지속형=흐림(Lantus는 맑음 주의).",
+ failFb:"Look-alike 약물은 투약 오류의 주요 원인. 외관만 보고 투여하면 안 됩니다. 반드시 라벨 확인.",
+ key:"Look-alike 약물: 처방 라벨·약 이름·용량·경로·시간·환자 5Right + 1Right(기록) 매번 확인 필수"},
+
+{type:'clinical',cat:"수혈·투약",diff:3,title:"Digoxin 독성",tag:"응급★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"이○○",age:"76세 여",room:"303호",dx:"심부전, Digoxin 0.25mg 복용, K⁺ 2.9"},
+ vitals:[{l:"HR",v:"42",u:"/분",c:"vd"},{l:"K⁺",v:"2.9",u:"mEq/L",c:"vd"},{l:"오심",v:"구토",u:"",c:"vd"},{l:"시야",v:"황시증",u:"",c:"vd"}],
+ ecg:"brady",
+ situation:"서맥 HR 42, 오심·구토, 황시증(노랗게 보임), 저칼륨혈증. Digoxin 복용 중.",
+ nurse:"\"HR이 42이고 노랗게 보인다고 해요. Digoxin 독성 아닌가요?\"",
+ choices:[
+   {t:"Digoxin 즉시 중단 + 담당의 보고 + 혈중 Digoxin 농도 측정 + K⁺ 교정 + 심전도 모니터링 강화",ok:true},
+   {t:"K⁺만 교정하고 Digoxin 유지",ok:false},
+   {t:"Digoxin 용량을 반으로 줄인다",ok:false},
+   {t:"서맥이므로 Atropine만 투여",ok:false}
+ ],
+ okFb:"정확합니다! 황시증+서맥+오심구토 = Digoxin 독성 3징후. 즉시 중단이 우선입니다.",
+ failFb:"Digoxin 독성 징후(황시증+서맥+오심구토) = 즉각 중단 필수. 용량만 줄이거나 K+ 교정만으로는 부족.",
+ key:"Digoxin 독성: 황시증+서맥+오심구토. 즉시 중단 + 혈중농도 측정 + K⁺ 교정. 저K⁺는 독성 악화"},
+
+{type:'clinical',cat:"수혈·투약",diff:2,title:"수혈 전 환자 확인",tag:"주의★★",tagColor:"#475569",tagBg:"#F1F5F9",
+ patient:{name:"최○○",age:"52세 여",room:"315호",dx:"빈혈, pRBC 2U 수혈 예정"},
+ vitals:[{l:"Hb",v:"6.2",u:"g/dL",c:"vd"},{l:"BP",v:"118/74",u:"mmHg",c:"vn"},{l:"HR",v:"92",u:"/분",c:"vw"},{l:"BT",v:"36.8",u:"℃",c:"vn"}],
+ ecg:"normal",
+ situation:"혈액 제제 도착. 수혈 전 확인 절차 시행 중.",
+ nurse:"\"혈액 왔어요. 어떻게 확인해야 해요?\"",
+ choices:[
+   {t:"두 간호사가 동시에 환자 이름·혈액형·수혈 번호·유효기간·외관 이상을 처방전과 대조 확인",ok:true},
+   {t:"차트에서 혈액형 확인 후 바로 수혈 시작",ok:false},
+   {t:"한 간호사가 빠르게 혈액 번호만 확인",ok:false},
+   {t:"환자에게 혈액형을 물어보고 확인한다",ok:false}
+ ],
+ okFb:"정확합니다! 수혈 전 Double-check: 두 간호사가 환자 이름·혈액형·수혈 번호·유효기간·외관 이상을 처방전과 대조해야 합니다.",
+ failFb:"수혈 전 Double-check는 안전 규정. 한 명이 빠르게·구두로만 확인하면 오류 위험이 높습니다.",
+ key:"수혈 Double-check: 두 간호사가 ①환자 이름 ②혈액형 ③수혈 번호 ④유효기간 ⑤외관 이상 처방전과 대조"},
+
+// ──────────────────────────────────────────────────────
+// 카테고리 5: 수술 후 합병증 (8문제)
+// ──────────────────────────────────────────────────────
+{type:'clinical',cat:"수술 후 합병증",diff:2,title:"요정체 — 도뇨관 제거 후",tag:"주의★★",tagColor:"#1e3a5f",tagBg:"#EFF6FF",
+ patient:{name:"강○○",age:"74세 남",room:"315호",dx:"직장암 수술 POD#3, 전립선비대증"},
+ vitals:[{l:"잔뇨",v:"520",u:"mL",c:"vd"},{l:"BP",v:"138/82",u:"mmHg",c:"vn"},{l:"HR",v:"88",u:"/분",c:"vn"},{l:"배뇨",v:"7h 0mL",u:"",c:"vd"}],
+ ecg:"normal",
+ situation:"도뇨관 제거 7시간 후 자연 배뇨 없음. '배가 빵빵하고 소변이 마렵지만 안 나온다'. BladderScan 520mL.",
+ nurse:"\"BladderScan 재봤는데 520mL예요.\"",
+ choices:[
+   {t:"단순 도뇨 또는 유치도뇨관 재삽입 오더 + Tamsulosin 검토 + Opioid PCA 감량 검토",ok:true},
+   {t:"물을 많이 마시게 하고 1시간 기다린다",ok:false},
+   {t:"방광 초음파를 한 번 더 재측정",ok:false},
+   {t:"진통제 추가 투여 후 경과 관찰",ok:false}
+ ],
+ okFb:"정확합니다! 잔뇨 300mL 이상 = 요정체 기준. 즉각 도뇨 + 알파차단제 + PCA 감량 검토.",
+ failFb:"잔뇨 520mL = 방광 과팽창 위험. 더 기다리면 방광 손상 가능. 즉각 도뇨가 필요합니다.",
+ key:"요정체 기준 잔뇨 300mL↑. BPH+경막외마취+오피오이드 = 3대 위험인자. 500mL↑ 한번에 배출 금지"},
+
+{type:'clinical',cat:"수술 후 합병증",diff:2,title:"장마비 의심",tag:"주의★★★",tagColor:"#14532d",tagBg:"#F0FDF4",
+ patient:{name:"이○○",age:"66세 여",room:"316호",dx:"대장암 개복수술 POD#4"},
+ vitals:[{l:"BT",v:"37.6",u:"℃",c:"vw"},{l:"BP",v:"142/88",u:"mmHg",c:"vw"},{l:"HR",v:"96",u:"/분",c:"vw"},{l:"장음",v:"소실",u:"",c:"vd"}],
+ ecg:"normal",
+ situation:"POD#4, 복부 팽만 심화 + 구토 3회. 배변·방귀 없음. 복부 둘레 6cm 증가.",
+ nurse:"\"사방 다 들어봤는데 장음이 전혀 안 들려요. 배도 많이 부풀었고요.\"",
+ choices:[
+   {t:"NPO + L-tube 삽입으로 감압 + 복부 X선·CT 오더 + 전해질 검사 + Opioid PCA 감량",ok:true},
+   {t:"식이를 죽에서 미음으로 바꾼다",ok:false},
+   {t:"걷기 운동만 시킨다",ok:false},
+   {t:"진통제 추가 후 아침에 외과 진찰",ok:false}
+ ],
+ okFb:"정확합니다! NPO + L-tube 감압이 핵심. Opioid는 장 운동 억제 효과가 있어 최소화해야 합니다.",
+ failFb:"장음 소실+복부 팽만+무배변 = 장마비 의심. 식이 변경·운동만으로는 부족. 즉각 감압 처치 필요.",
+ key:"수술 후 장마비: NPO+L-tube 감압+조기보행. 장 회복 순서: 소장(POD1-2)→위(POD2-3)→대장(POD3-5)"},
+
+{type:'clinical',cat:"수술 후 합병증",diff:3,title:"조영술 후 천자 부위 혈종",tag:"주의★★★",tagColor:"#004D40",tagBg:"#E0F2F1",
+ patient:{name:"최○○",age:"63세 남",room:"304호",dx:"관상동맥 조영술 후 4시간, 항혈소판제 복용"},
+ vitals:[{l:"천자부위",v:"박동성 혈종",u:"5x6cm",c:"vd"},{l:"BP",v:"138/86",u:"mmHg",c:"vn"},{l:"HR",v:"86",u:"/분",c:"vn"},{l:"원위맥박",v:"촉지됨",u:"",c:"vn"}],
+ ecg:"normal",
+ situation:"조영술 후 4시간, 우측 서혜부 박동성 혈종 5x6cm. 점점 커지는 양상. 항혈소판제 복용 중.",
+ nurse:"\"천자 부위가 박동적으로 느껴지고 혈종이 커지는 것 같아요.\"",
+ choices:[
+   {t:"즉각 의사 보고 + 혈종 크기 표시 추적 + 수기 압박 검토 + 도플러 초음파 오더 + 원위부 맥박 15분마다 확인",ok:true},
+   {t:"더 강한 모래주머니 압박만 적용",ok:false},
+   {t:"원위부 맥박 있으므로 경과 관찰",ok:false},
+   {t:"혈종 부위를 마사지한다",ok:false}
+ ],
+ okFb:"정확합니다! 박동성 혈종 = 가성동맥류 의심. 마사지·압박만으로는 안 되고 의사 보고 + 초음파 필요.",
+ failFb:"박동성 혈종 마사지는 혈종 확산 위험. 원위부 맥박 있어도 진행성 혈종은 혈관 손상 가능. 즉각 보고 필요.",
+ key:"박동성 혈종 = 가성동맥류 의심. 마사지 금지. 도플러 초음파 + 의사 보고. 원위부 맥박·피부색 15분마다 확인"},
+
+{type:'clinical',cat:"수술 후 합병증",diff:2,title:"수술 후 심인성 쇼크",tag:"응급★★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"최○○",age:"76세 남",room:"301호",dx:"NSTEMI PCI 후 POD#3"},
+ vitals:[{l:"BP",v:"78/50",u:"mmHg",c:"vd"},{l:"HR",v:"114",u:"/분",c:"vd"},{l:"SpO₂",v:"92",u:"%",c:"vw"},{l:"소변",v:"핍뇨",u:"",c:"vd"}],
+ ecg:"tachy",
+ situation:"PCI 3일 후 혈압 급격히 저하. 피부 냉습·창백. 2시간 동안 소변 없음. 혈압 점진적으로 감소해 온 추이.",
+ nurse:"\"혈압이 78/50까지 떨어졌어요. 피부도 차갑고 소변도 안 나와요.\"",
+ choices:[
+   {t:"즉각 응급 콜 + 생리식염수 250mL bolus + Norepinephrine 준비 + 응급 심전도 + 베드사이드 에코 요청",ok:true},
+   {t:"수액 1L 급속 정주 후 경과 관찰",ok:false},
+   {t:"혈압약(항고혈압제) 투여 중단만 한다",ok:false},
+   {t:"30분마다 활력징후 확인",ok:false}
+ ],
+ okFb:"정확합니다! 심인성 쇼크: 저혈압+냉습한 피부+핍뇨. 즉각 응급 콜 + 소량 수액 bolus + 승압제 준비.",
+ failFb:"심인성 쇼크에 대량 수액은 폐부종 악화 위험. 소량 bolus(250mL) 후 승압제 준비가 필요합니다.",
+ key:"심인성 쇼크 3징후: 저혈압+냉습한 피부+핍뇨. 수액 과다 금지. Norepinephrine 준비. MAP ≥65mmHg 목표"},
+
+{type:'clinical',cat:"수술 후 합병증",diff:3,title:"문합부 누출(Anastomotic Leak)",tag:"응급★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"이○○",age:"58세 남",room:"318호",dx:"위절제술 POD#5"},
+ vitals:[{l:"BT",v:"39.2",u:"℃",c:"vd"},{l:"드레인",v:"갈색 탁한 배출",u:"",c:"vd"},{l:"HR",v:"116",u:"/분",c:"vw"},{l:"BP",v:"96/62",u:"mmHg",c:"vw"}],
+ ecg:"tachy",
+ situation:"POD#5. 드레인에서 갈색 탁한 액 다량 배출. 발열 39.2℃, 혈압 저하, 복통 심화.",
+ nurse:"\"드레인에서 이상한 게 나와요. 색깔도 이상하고 양도 많아요.\"",
+ choices:[
+   {t:"즉각 외과 의사 보고 + 드레인 배출물 성상·양 기록 + 활력징후 모니터링 강화 + 패혈증 Bundle 준비",ok:true},
+   {t:"드레인이 막힌 것 같으니 세척한다",ok:false},
+   {t:"드레인 교체 후 경과 관찰",ok:false},
+   {t:"발열이므로 해열제만 투여",ok:false}
+ ],
+ okFb:"정확합니다! 수술 후 드레인의 갈색 탁한 배출물 + 발열 + 혈압 저하 = 문합부 누출 의심 응급.",
+ failFb:"드레인 세척·교체는 금기. 문합부 누출은 수술적 응급이므로 즉각 외과 보고가 필요합니다.",
+ key:"수술 후 문합부 누출: 드레인 갈색 탁한 배출물+발열+혈압 저하. 드레인 세척·조작 금지. 외과 즉각 보고"},
+
+{type:'clinical',cat:"수술 후 합병증",diff:2,title:"수술 후 무기폐",tag:"주의★★",tagColor:"#0277BD",tagBg:"#E1F5FE",
+ patient:{name:"박○○",age:"68세 남",room:"319호",dx:"폐엽절제술 POD#2"},
+ vitals:[{l:"SpO₂",v:"91",u:"%",c:"vd"},{l:"RR",v:"24",u:"/분",c:"vw"},{l:"BT",v:"37.8",u:"℃",c:"vw"},{l:"청진",v:"우하엽 감소",u:"",c:"vd"}],
+ ecg:"tachy",
+ situation:"POD#2. 통증으로 얕은 호흡 지속. SpO₂ 91%. 우하엽 호흡음 감소. 기침 기피.",
+ nurse:"\"통증 때문에 깊이 숨을 못 쉬어요. 산소가 계속 낮아요.\"",
+ choices:[
+   {t:"통증 조절 강화(진통제 오더) + 심호흡·기침 격려 + 유인 폐활량계(IS) + 두부 거상 + 담당의 보고",ok:true},
+   {t:"산소만 올리고 경과 관찰",ok:false},
+   {t:"기관 내 흡인 즉시 시행",ok:false},
+   {t:"침상 안정을 강화한다",ok:false}
+ ],
+ okFb:"정확합니다! 수술 후 무기폐 예방: 통증 조절 → 심호흡 가능 → 유인 폐활량계 + 조기 보행.",
+ failFb:"산소만 올리는 것은 원인 해결이 아닙니다. 통증 조절 → 심호흡 유도가 핵심입니다.",
+ key:"수술 후 무기폐: 통증 조절 강화 → 심호흡·기침 격려 → 유인 폐활량계(IS) → 조기 보행. 침상 안정은 악화"},
+
+{type:'clinical',cat:"수술 후 합병증",diff:3,title:"복강경 수술 후 CO₂ 어깨 통증",tag:"주의★",tagColor:"#475569",tagBg:"#F1F5F9",
+ patient:{name:"이○○",age:"45세 여",room:"320호",dx:"복강경 담낭절제술 POD#1"},
+ vitals:[{l:"BP",v:"118/74",u:"mmHg",c:"vn"},{l:"HR",v:"78",u:"/분",c:"vn"},{l:"SpO₂",v:"98",u:"%",c:"vn"},{l:"어깨통증",v:"양측",u:"",c:"vw"}],
+ ecg:"normal",
+ situation:"POD#1. 양측 어깨 통증과 목 통증 호소. 수술 부위 통증과는 다른 양상.",
+ nurse:"\"수술하고 어깨가 아프다는데 왜 어깨가 아픈 건가요?\"",
+ choices:[
+   {t:"복강경 수술 시 주입한 CO₂ 가스에 의한 횡격막 자극 통증으로 수일 내 자연 소실됨을 교육",ok:true},
+   {t:"심근경색 의심으로 즉각 심전도 시행",ok:false},
+   {t:"폐색전증 의심으로 즉각 CT 시행",ok:false},
+   {t:"어깨 물리치료를 즉각 시행",ok:false}
+ ],
+ okFb:"정확합니다! 복강경 수술 후 어깨·목 통증 = CO₂ 가스로 인한 횡격막 자극. 활력징후 정상이면 자연 소실됩니다.",
+ failFb:"활력징후 정상인 복강경 후 어깨 통증은 CO₂ 가스가 원인. 즉각 응급 검사는 과잉 처치입니다.",
+ key:"복강경 수술 후 어깨·목 통증: CO₂ 가스 횡격막 자극 → 수일 내 자연 소실. 활력징후 이상 시에만 추가 평가"},
+
+// ──────────────────────────────────────────────────────
+// 카테고리 6: 신장·비뇨기·전해질 (8문제)
+// ──────────────────────────────────────────────────────
+{type:'clinical',cat:"신장·비뇨기·전해질",diff:2,title:"고칼륨혈증 — 심전도 변화",tag:"응급★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"박○○",age:"70세 남",room:"310호",dx:"만성신부전 CKD stage 4"},
+ vitals:[{l:"K⁺",v:"6.8",u:"mEq/L",c:"vd"},{l:"HR",v:"52",u:"/분",c:"vw"},{l:"BP",v:"148/92",u:"mmHg",c:"vw"},{l:"ECG",v:"텐트형 T파",u:"",c:"vd"}],
+ ecg:"brady",
+ situation:"K⁺ 6.8mEq/L, 심전도에서 텐트형(tent) T파 관찰. 서맥 HR 52.",
+ nurse:"\"K⁺가 6.8이고 심전도에서 T파가 이상해요. 고칼륨혈증 아닌가요?\"",
+ choices:[
+   {t:"즉각 담당의 보고 + Calcium gluconate IV + 심전도 모니터링 강화 + K⁺ 배출 치료 검토",ok:true},
+   {t:"K⁺ 식이 제한만 교육",ok:false},
+   {t:"경과 관찰 후 다음 혈액 검사 시 재확인",ok:false},
+   {t:"이뇨제(Furosemide)만 투여",ok:false}
+ ],
+ okFb:"정확합니다! 고K⁺+심전도 변화 = 즉각 Calcium gluconate IV로 심장 보호. 이후 K⁺ 배출 치료.",
+ failFb:"고K⁺에 심전도 변화는 즉각 심장 보호(Calcium gluconate)가 필요한 응급. 식이 제한·이뇨제만으로는 부족.",
+ key:"고K⁺+ECG 변화: 1차 Calcium gluconate(심장 보호) → Insulin+Dextrose(세포 내 이동) → 투석 고려"},
+
+{type:'clinical',cat:"신장·비뇨기·전해질",diff:3,title:"저나트륨혈증 — 교정 속도",tag:"주의★★★",tagColor:"#0277BD",tagBg:"#E1F5FE",
+ patient:{name:"이○○",age:"72세 여",room:"312호",dx:"SIADH, Na⁺ 118mEq/L"},
+ vitals:[{l:"Na⁺",v:"118",u:"mEq/L",c:"vd"},{l:"의식",v:"혼돈",u:"",c:"vw"},{l:"혈압",v:"112/68",u:"mmHg",c:"vn"},{l:"소변Na",v:"증가",u:"",c:"vd"}],
+ ecg:"normal",
+ situation:"SIADH 진단 Na⁺ 118. 의식 혼돈 있음. 의사로부터 3% 식염수 투여 오더 받음.",
+ nurse:"\"Na⁺가 118인데 3% 식염수 빨리 올리면 안 되나요?\"",
+ choices:[
+   {t:"시간당 Na⁺ 1~2mEq/L씩 교정(24시간 최대 10~12mEq/L) + 2시간마다 Na⁺ 모니터링",ok:true},
+   {t:"빨리 올리기 위해 시간당 3~4mEq/L 속도로 교정",ok:false},
+   {t:"증상이 있으므로 최대한 빨리 정상화한다",ok:false},
+   {t:"Na⁺를 올리면 위험하니 투여 거부한다",ok:false}
+ ],
+ okFb:"정확합니다! 저나트륨 교정은 너무 빠르면 중심성 교뇨수마비(CPM) 발생. 24시간 최대 10~12mEq/L.",
+ failFb:"저Na⁺를 빨리 교정하면 삼투성 탈수초화 증후군(ODS/CPM) 발생 위험. 천천히 교정이 원칙.",
+ key:"저Na⁺ 교정 속도: 시간당 1~2mEq/L, 24시간 최대 10~12mEq/L. 너무 빠르면 CPM(중심성 교뇨수마비) 위험"},
+
+{type:'clinical',cat:"신장·비뇨기·전해질",diff:2,title:"급성 신부전 — 핍뇨",tag:"주의★★★",tagColor:"#0277BD",tagBg:"#E1F5FE",
+ patient:{name:"최○○",age:"65세 남",room:"308호",dx:"심부전, NSAID 복용"},
+ vitals:[{l:"소변량",v:"10mL/hr",u:"×4시간",c:"vd"},{l:"크레아티닌",v:"2.8",u:"mg/dL(상승)",c:"vd"},{l:"BP",v:"108/64",u:"mmHg",c:"vw"},{l:"BUN",v:"58",u:"mg/dL",c:"vd"}],
+ ecg:"normal",
+ situation:"4시간 동안 소변량 10mL/hr. 크레아티닌 2.8(전날 1.2). NSAID 복용 중.",
+ nurse:"\"소변이 너무 안 나와요. 크레아티닌도 많이 올랐어요.\"",
+ choices:[
+   {t:"NSAID 즉시 중단 + 담당의 보고 + 수액 bolus 검토 + 신독성 약물 검토 + 신내과 협진",ok:true},
+   {t:"Furosemide 투여로 소변량 증가 유도",ok:false},
+   {t:"수액 제한 후 경과 관찰",ok:false},
+   {t:"카테터 막힘 의심하여 세척 시행",ok:false}
+ ],
+ okFb:"정확합니다! NSAID는 신혈류 감소 → 신독성. 즉시 중단 + 수액 평가 + 신내과 협진이 필요합니다.",
+ failFb:"Furosemide는 이미 신기능 저하된 상태에서 추가 손상 위험. 신독성 약물 중단이 1차 처치입니다.",
+ key:"급성 신부전: 신독성 약물(NSAID·조영제) 중단이 1차. Furosemide는 핍뇨 AKI에 일반적 권고 아님"},
+
+{type:'clinical',cat:"신장·비뇨기·전해질",diff:3,title:"투석 환자 — 저혈압",tag:"응급★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"이○○",age:"68세 여",room:"투석실",dx:"혈액투석 중 2시간째"},
+ vitals:[{l:"BP",v:"76/44",u:"mmHg",c:"vd"},{l:"HR",v:"108",u:"/분",c:"vd"},{l:"증상",v:"어지러움·구토",u:"",c:"vd"},{l:"체중감소",v:"목표치 초과",u:"",c:"vd"}],
+ ecg:"tachy",
+ situation:"투석 중 혈압 76/44, 어지러움, 구토. 당일 투석 목표 체중 감소 3.5kg(과도).",
+ nurse:"\"투석 중 혈압이 너무 떨어졌어요. 어떻게 해야 하나요?\"",
+ choices:[
+   {t:"투석 초여과 속도 감소 또는 중단 + 생리식염수 100~200mL 투여 + 두부 거상 금지(트렌델렌버그) + 담당의 보고",ok:true},
+   {t:"투석 속도 유지 후 승압제만 투여",ok:false},
+   {t:"투석 즉시 완전 중단",ok:false},
+   {t:"수분 제한이므로 수액 투여 불가",ok:false}
+ ],
+ okFb:"정확합니다! 투석 중 저혈압: 초여과 속도 감소 + 소량 생리식염수 + 트렌델렌버그 체위가 1차 대응.",
+ failFb:"투석 중 저혈압에 속도 유지·완전 중단만은 과잉/부족 처치. 초여과 속도 감소가 1차입니다.",
+ key:"투석 중 저혈압: ①초여과 속도 감소 ②생리식염수 100~200mL ③트렌델렌버그(두부 낮춤) ④담당의 보고"},
+
+{type:'clinical',cat:"신장·비뇨기·전해질",diff:2,title:"저칼슘혈증 — 테타니",tag:"응급★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"박○○",age:"52세 여",room:"302호",dx:"갑상선절제술 POD#1"},
+ vitals:[{l:"Ca²⁺",v:"6.8",u:"mg/dL",c:"vd"},{l:"Trousseau",v:"양성",u:"",c:"vd"},{l:"손발",v:"저림·경련",u:"",c:"vd"},{l:"BP",v:"118/74",u:"mmHg",c:"vn"}],
+ ecg:"normal",
+ situation:"갑상선절제술 POD#1. 손·발 저림, Trousseau 징후 양성(혈압계 부풀리면 손 경련), Ca²⁺ 6.8.",
+ nurse:"\"수술 후 손발이 저리고 경련이 있어요. 칼슘이 낮아요.\"",
+ choices:[
+   {t:"즉각 Calcium gluconate 1~2g IV 천천히 + 담당의 보고 + ECG 모니터링 + 구강 칼슘 보충",ok:true},
+   {t:"칼슘 식이 섭취를 격려한다",ok:false},
+   {t:"증상이 경미하므로 경과 관찰",ok:false},
+   {t:"Magnesium 투여",ok:false}
+ ],
+ okFb:"정확합니다! 갑상선절제술 후 저칼슘 테타니 = 부갑상선 손상. 즉각 Calcium gluconate IV가 필요합니다.",
+ failFb:"Trousseau 양성 + 저Ca²⁺ = 즉각 IV 칼슘 필요. 식이 섭취나 경과 관찰로는 심한 테타니 악화됩니다.",
+ key:"갑상선절제술 후 저칼슘: 부갑상선 손상 원인. Calcium gluconate IV 즉각 투여. Chvostek·Trousseau 징후 확인"},
+
+{type:'clinical',cat:"신장·비뇨기·전해질",diff:3,title:"신증후군 환자 — 감염 위험",tag:"주의★★",tagColor:"#475569",tagBg:"#F1F5F9",
+ patient:{name:"이○○",age:"32세 여",room:"315호",dx:"신증후군, 스테로이드 치료 중"},
+ vitals:[{l:"부종",v:"전신",u:"",c:"vd"},{l:"단백뇨",v:"4+",u:"",c:"vd"},{l:"BT",v:"38.1",u:"℃",c:"vw"},{l:"Albumin",v:"1.8",u:"g/dL",c:"vd"}],
+ ecg:"normal",
+ situation:"스테로이드 치료 중 신증후군 환자. 발열 38.1℃, 전신 부종, 저알부민.",
+ nurse:"\"스테로이드 치료 중인데 열이 나요. 어떻게 볼까요?\"",
+ choices:[
+   {t:"감염 평가(혈액·소변 배양) + 담당의 보고. 스테로이드 임의 중단 금지",ok:true},
+   {t:"스테로이드를 즉각 중단한다",ok:false},
+   {t:"면역 억제제이므로 발열은 정상 반응",ok:false},
+   {t:"해열제만 투여하고 스테로이드 용량 증량",ok:false}
+ ],
+ okFb:"정확합니다! 스테로이드 면역억제 상태의 발열 = 감염 가능성 높음. 스테로이드 임의 중단은 부신 위기 유발 위험.",
+ failFb:"스테로이드 임의 중단은 금기(부신 위기). 발열=정상도 아닙니다. 감염 평가 + 담당의 보고가 필요.",
+ key:"스테로이드 복용 중 발열: 감염 의심 → 배양 검체 채취 + 보고. 임의 중단 금기(부신 위기). 감량은 의사 판단"},
+
+{type:'clinical',cat:"신장·비뇨기·전해질",diff:2,title:"핍뇨 감별 — 신전성 vs 신성",tag:"주의★★",tagColor:"#0277BD",tagBg:"#E1F5FE",
+ patient:{name:"김○○",age:"72세 남",room:"307호",dx:"탈수, 이뇨제 복용"},
+ vitals:[{l:"소변량",v:"15mL/hr",u:"",c:"vd"},{l:"BUN/Cr",v:"24:1",u:"(높음)",c:"vd"},{l:"소변삼투압",v:"620",u:"mOsm/kg(높음)",c:"vn"},{l:"BP",v:"96/60",u:"mmHg",c:"vw"}],
+ ecg:"normal",
+ situation:"핍뇨. BUN/Cr 비율 24:1(정상 10~20:1). 소변 삼투압 620(높음). 탈수+이뇨제 복용.",
+ nurse:"\"소변이 안 나오는데 신전성 핍뇨인지 신성 핍뇨인지 어떻게 구분하나요?\"",
+ choices:[
+   {t:"BUN/Cr 비율 상승 + 고농도 소변 = 신전성 핍뇨 → 수액 보충 후 반응 확인",ok:true},
+   {t:"즉각 투석 준비",ok:false},
+   {t:"Furosemide를 더 투여한다",ok:false},
+   {t:"소변량이 적으므로 수액도 제한한다",ok:false}
+ ],
+ okFb:"정확합니다! 신전성: BUN/Cr↑ + 소변 농축(삼투압↑). 수액에 반응. 신성: BUN/Cr 정상 + 소변 희석(삼투압↓).",
+ failFb:"탈수+고BUN/Cr+고소변삼투압 = 신전성 핍뇨. 수액 보충이 1차 치료. Furosemide는 악화시킵니다.",
+ key:"신전성 핍뇨: BUN/Cr↑, 소변삼투압↑(>500), FENa<1%. 치료=수액. 신성 핍뇨: FENa>1%, 소변삼투압↓"},
+
+{type:'clinical',cat:"신장·비뇨기·전해질",diff:3,title:"조영제 신독성 예방",tag:"주의★★",tagColor:"#475569",tagBg:"#F1F5F9",
+ patient:{name:"이○○",age:"68세 남",room:"306호",dx:"CKD stage 3, 복부 CT 조영제 예정"},
+ vitals:[{l:"크레아티닌",v:"1.9",u:"mg/dL",c:"vw"},{l:"eGFR",v:"38",u:"mL/min",c:"vd"},{l:"Metformin",v:"복용 중",u:"",c:"vd"},{l:"수분섭취",v:"불량",u:"",c:"vd"}],
+ ecg:"normal",
+ situation:"CKD 3단계 환자 조영제 CT 예정. Metformin 복용 중. 검사 전 간호사가 확인.",
+ nurse:"\"신기능이 나쁜 환자인데 조영제 검사 전에 뭘 해야 하나요?\"",
+ choices:[
+   {t:"Metformin 검사 전 48시간 중단 확인 + 충분한 수분 공급(생리식염수) + 담당의 확인 + 신기능 검사 후 재개",ok:true},
+   {t:"신기능 저하이므로 조영제 검사 불가",ok:false},
+   {t:"Metformin 유지하고 조영제 검사 진행",ok:false},
+   {t:"검사 후 즉시 Metformin 재복용",ok:false}
+ ],
+ okFb:"정확합니다! CKD + 조영제: Metformin 48시간 전 중단(젖산산증 예방) + 수분 공급(신독성 예방).",
+ failFb:"Metformin 유지 + 조영제 = 젖산산증 위험. 검사 불가는 아니지만 반드시 48시간 전 중단이 필요.",
+ key:"조영제+Metformin: 조영제 48h 전 중단(젖산산증 예방). 생리식염수 수화(신독성 예방). 검사 후 신기능 확인 후 재개"},
+
+// ──────────────────────────────────────────────────────
+// 카테고리 7: 호흡·기도 (8문제)
+// ──────────────────────────────────────────────────────
+{type:'clinical',cat:"호흡·기도",diff:2,title:"급성 폐부종",tag:"응급★★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"박○○",age:"68세 여",room:"312호",dx:"만성심부전 HFrEF EF 35%, 급성 악화"},
+ vitals:[{l:"SpO₂",v:"86",u:"%",c:"vd"},{l:"BP",v:"172/104",u:"mmHg",c:"vd"},{l:"RR",v:"30",u:"/분",c:"vd"},{l:"HR",v:"118",u:"/분",c:"vw"}],
+ ecg:"tachy",
+ situation:"갑자기 심한 호흡곤란. 기좌호흡. 핑크빛 거품 가래. 양측 폐 수포음 청진.",
+ nurse:"\"숨을 못 쉬겠다고 하고 핑크빛 가래가 나와요. SpO₂가 86이에요.\"",
+ choices:[
+   {t:"고유량 산소(FiO₂↑) + Furosemide 40mg IV + 담당의 즉각 보고 + 앉은 자세 유지(좌위)",ok:true},
+   {t:"누워서 안정시키고 저유량 산소 투여",ok:false},
+   {t:"수액 500mL 급속 정주",ok:false},
+   {t:"베타차단제 투여",ok:false}
+ ],
+ okFb:"정확합니다! 급성 폐부종: 좌위(전부하 감소) + 고유량 산소 + Furosemide(이뇨). 누우면 더 악화됩니다.",
+ failFb:"폐부종 환자에게 수액 투여는 금기. 누운 자세는 폐울혈 악화. 앉히고 이뇨제 + 산소가 우선.",
+ key:"급성 폐부종: 좌위(단좌위) + 고유량 산소 + Furosemide IV. 수액 투여·누운 자세 금기"},
+
+{type:'clinical',cat:"호흡·기도",diff:3,title:"기관 내 삽관 후 튜브 위치 확인",tag:"주의★★★",tagColor:"#0277BD",tagBg:"#E1F5FE",
+ patient:{name:"이○○",age:"55세 남",room:"ICU이동 전",dx:"호흡부전으로 기관 내 삽관"},
+ vitals:[{l:"SpO₂",v:"88",u:"%",c:"vd"},{l:"호흡음",v:"좌측 감소",u:"",c:"vd"},{l:"복부",v:"팽만",u:"",c:"vw"},{l:"ETCO₂",v:"35",u:"mmHg",c:"vn"}],
+ ecg:"tachy",
+ situation:"삽관 직후 좌측 호흡음 감소, 복부 팽만 없음. SpO₂ 88%. ETCO₂ 35mmHg.",
+ nurse:"\"삽관 후 왼쪽 숨소리가 약한 것 같아요. 괜찮은 건가요?\"",
+ choices:[
+   {t:"우측 주기관지 삽관 의심 → 튜브 1~2cm 후퇴 후 양측 호흡음 재확인 + 흉부 X선",ok:true},
+   {t:"ETCO₂ 정상이므로 문제없다",ok:false},
+   {t:"튜브를 더 깊이 삽입한다",ok:false},
+   {t:"좌측 청진기 위치 조정 후 재확인",ok:false}
+ ],
+ okFb:"정확합니다! 단측 호흡음 감소 = 우측 주기관지 삽관 가능성. 튜브를 살짝 빼고 양측 재확인이 먼저.",
+ failFb:"ETCO₂ 정상이어도 편측 삽관이면 좌측 폐허탈 가능. 단측 호흡음 감소는 즉각 평가해야 합니다.",
+ key:"삽관 후 편측 호흡음↓ = 우측 주기관지 삽관 의심. 1~2cm 후퇴 + 재확인 + 흉부 X선. ETCO₂만으론 위치 확인 불충분"},
+
+{type:'clinical',cat:"호흡·기도",diff:2,title:"기흉 — 자발성",tag:"응급★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"김○○",age:"24세 남",room:"응급실",dx:"마른 체형, 갑자기 발생한 흉통"},
+ vitals:[{l:"SpO₂",v:"93",u:"%",c:"vw"},{l:"RR",v:"22",u:"/분",c:"vw"},{l:"호흡음",v:"우측 감소",u:"",c:"vd"},{l:"통증",v:"NRS 7",u:"",c:"vd"}],
+ ecg:"normal",
+ situation:"키 185cm 마른 체형. 갑자기 우측 흉통·호흡곤란. 우측 호흡음 감소.",
+ nurse:"\"오른쪽 숨소리가 안 들려요. 기흉인 것 같아요.\"",
+ choices:[
+   {t:"즉각 의사 보고 + 산소 투여(고유량) + 흉부 X선 오더 + 흉관 삽관 준비",ok:true},
+   {t:"진통제 투여 후 경과 관찰",ok:false},
+   {t:"흉부 청진만 반복하고 기다린다",ok:false},
+   {t:"흉관 삽관을 간호사가 즉각 시행한다",ok:false}
+ ],
+ okFb:"정확합니다! 기흉 의심 시 산소 + X선 확인 + 흉관 삽관 준비. 흉관 삽관은 반드시 의사가 시행합니다.",
+ failFb:"기흉에 진통제만은 원인 치료가 아닙니다. 간호사 임의 흉관 삽관은 불가. 의사 보고 + X선이 우선.",
+ key:"자발성 기흉: 마른 남성, 갑작스러운 편측 흉통+호흡음↓. 산소+X선+흉관 삽관 준비. 삽관은 의사 시행"},
+
+{type:'clinical',cat:"호흡·기도",diff:3,title:"산소 치료 — COPD 주의",tag:"주의★★",tagColor:"#0277BD",tagBg:"#E1F5FE",
+ patient:{name:"이○○",age:"72세 남",room:"314호",dx:"COPD Gold 3단계"},
+ vitals:[{l:"SpO₂",v:"84",u:"%",c:"vd"},{l:"pCO₂",v:"52",u:"mmHg(만성상승)",c:"vw"},{l:"RR",v:"18",u:"/분",c:"vn"},{l:"의식",v:"명확",u:"",c:"vn"}],
+ ecg:"normal",
+ situation:"COPD 환자 SpO₂ 84%. 만성 CO₂ 보유자. '숨이 좀 차다'고 호소. RR은 정상.",
+ nurse:"\"SpO₂가 84인데 산소를 높이 올려야 하나요?\"",
+ choices:[
+   {t:"비강 캐뉼라 1~2L/min으로 시작 + 목표 SpO₂ 88~92% + 의식 변화·RR 변화 주의 모니터링",ok:true},
+   {t:"100% 산소 마스크로 즉각 고유량 투여",ok:false},
+   {t:"SpO₂ 정상(95%)까지 올릴 때까지 산소 증량",ok:false},
+   {t:"COPD이므로 산소 투여 금기",ok:false}
+ ],
+ okFb:"정확합니다! COPD 저산소 저환기 환자: 목표 SpO₂ 88~92%. 과도한 산소는 CO₂ 나르코시스 위험.",
+ failFb:"COPD에 고유량 산소는 CO₂ 나르코시스(의식 저하) 위험. 목표 SpO₂는 88~92%로 낮게 유지.",
+ key:"COPD 산소 치료: 목표 SpO₂ 88~92%(일반 환자는 94~98%). 과도한 산소 → CO₂ 나르코시스 → 의식 저하"},
+
+{type:'clinical',cat:"호흡·기도",diff:2,title:"흡인성 폐렴 위험",tag:"주의★★",tagColor:"#92400E",tagBg:"#FEF3C7",
+ patient:{name:"박○○",age:"80세 여",room:"318호",dx:"뇌졸중 후 연하 장애"},
+ vitals:[{l:"BT",v:"38.1",u:"℃",c:"vw"},{l:"SpO₂",v:"94",u:"%",c:"vn"},{l:"연하",v:"곤란",u:"",c:"vd"},{l:"체위",v:"앙와위",u:"",c:"vd"}],
+ ecg:"normal",
+ situation:"연하 장애 환자 식사 후 기침, 발열. 경관 영양 중 앙와위 자세.",
+ nurse:"\"밥 먹다 기침을 많이 해요. 열도 나고요. 흡인한 것 같아요.\"",
+ choices:[
+   {t:"상체 30~45도 거상 + 구강 흡인 준비 + 담당의 보고 + 연하 평가 의뢰 + 경구 섭취 잠정 중단",ok:true},
+   {t:"빨리 식사를 마저 먹인다",ok:false},
+   {t:"앙와위 유지하고 기침만 격려",ok:false},
+   {t:"경관 영양 속도를 높인다",ok:false}
+ ],
+ okFb:"정확합니다! 흡인 의심 시 즉각 상체 거상 + 식사 중단 + 흡인 준비. 경구 섭취는 연하 평가 후 결정.",
+ failFb:"흡인 의심 시 계속 먹이거나 앙와위 유지는 폐렴 악화. 즉각 상체 거상 + 섭취 중단이 필요합니다.",
+ key:"흡인 예방: 식사·경관 영양 시 상체 30~45도 거상 필수. 흡인 의심 시 즉각 중단 + 연하 평가 의뢰"},
+
+{type:'clinical',cat:"호흡·기도",diff:3,title:"폐색전증 의심",tag:"응급★★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"최○○",age:"62세 여",room:"311호",dx:"슬관절 수술 POD#3"},
+ vitals:[{l:"SpO₂",v:"88",u:"%",c:"vd"},{l:"HR",v:"122",u:"/분",c:"vd"},{l:"BP",v:"96/62",u:"mmHg",c:"vw"},{l:"흉통",v:"갑작스러운",u:"",c:"vd"}],
+ ecg:"tachy",
+ situation:"수술 3일 후 갑작스러운 흉통·호흡곤란·SpO₂ 급락. 우측 하지 부종 있었음.",
+ nurse:"\"갑자기 숨이 가쁘고 흉통이 생겼어요. 산소도 떨어졌고요.\"",
+ choices:[
+   {t:"즉각 응급 콜 + 고유량 산소 + 응급 CT-PA + D-dimer + 항응고 준비 + 침상 안정",ok:true},
+   {t:"자세 변경 후 경과 관찰",ok:false},
+   {t:"흉통이므로 심전도만 먼저 시행",ok:false},
+   {t:"재활 치료 계속 진행",ok:false}
+ ],
+ okFb:"정확합니다! 수술 후 DVT→PE 응급. CT-PA가 진단 표준. 즉각 항응고 시작과 응급 콜이 필요합니다.",
+ failFb:"수술 후 갑작스러운 흉통+SpO₂↓+빈맥 = PE 의심. 즉각 응급 콜 + CT-PA. 재활 계속은 혈전 이동 위험.",
+ key:"PE 의심: Virchow 3요소(정체·손상·과응고) + 갑작스러운 흉통+SpO₂↓+빈맥. CT-PA 진단. 항응고 즉각 시작"},
+
+{type:'clinical',cat:"호흡·기도",diff:2,title:"COPD 급성 악화",tag:"응급★★★",tagColor:"#7f1d1d",tagBg:"#FFF1F2",
+ patient:{name:"이○○",age:"68세 남",room:"313호",dx:"COPD, 감기 후 악화"},
+ vitals:[{l:"SpO₂",v:"82",u:"%",c:"vd"},{l:"RR",v:"28",u:"/분",c:"vd"},{l:"호흡보조근",v:"사용",u:"",c:"vd"},{l:"의식",v:"기면",u:"",c:"vw"}],
+ ecg:"tachy",
+ situation:"COPD 환자 감기 후 호흡 급격히 악화. 보조호흡근 사용. 의식 기면.",
+ nurse:"\"숨을 너무 힘들게 쉬어요. 의식도 처져요.\"",
+ choices:[
+   {t:"즉각 응급 콜 + NIPPV(비침습 양압환기) 준비 + 기관지확장제 네뷸라이저 + 스테로이드 IV + ABGA",ok:true},
+   {t:"고유량 산소 마스크로 즉각 투여",ok:false},
+   {t:"기관지확장제만 투여하고 경과 관찰",ok:false},
+   {t:"항생제만 투여",ok:false}
+ ],
+ okFb:"정확합니다! COPD 급성 악화에 고유량 산소는 CO₂ 나르코시스 위험. NIPPV + 기관지확장제 + 스테로이드가 표준.",
+ failFb:"COPD에 고유량 산소 마스크는 CO₂ 나르코시스 유발 위험. NIPPV + 기관지확장제 + ABGA가 필요합니다.",
+ key:"COPD 급성 악화: NIPPV(목표 SpO₂ 88~92%) + 기관지확장제 + 스테로이드 IV + 항생제. 고유량 산소 금기"},
+
+{type:'clinical',cat:"호흡·기도",diff:3,title:"흉관 배액 — 기포 발생",tag:"주의★★",tagColor:"#0277BD",tagBg:"#E1F5FE",
+ patient:{name:"박○○",age:"55세 남",room:"316호",dx:"자발성 기흉, 흉관 삽관 후 2일"},
+ vitals:[{l:"SpO₂",v:"96",u:"%",c:"vn"},{l:"water seal",v:"지속 기포",u:"",c:"vd"},{l:"배액",v:"50mL/일",u:"",c:"vn"},{l:"호흡음",v:"양측 청진",u:"",c:"vn"}],
+ ecg:"normal",
+ situation:"흉관 삽관 후 2일. Water seal chamber에서 기포가 지속 발생. 숨 쉴 때마다 기포.",
+ nurse:"\"흉관에서 기포가 계속 나와요. 새는 건가요?\"",
+ choices:[
+   {t:"공기 누출 위치 확인(삽입부→연결부→WS chamber 순서) + 담당의 보고 + 연결부 확인",ok:true},
+   {t:"흉관을 클램프(잠근다)",ok:false},
+   {t:"기포 발생은 정상이므로 무시한다",ok:false},
+   {t:"흉관을 즉각 제거한다",ok:false}
+ ],
+ okFb:"정확합니다! 지속적 기포 = 폐 공기 누출 or 연결부 누출 확인 필요. 임의 클램프는 긴장성 기흉 유발 위험.",
+ failFb:"지속 기포를 무시하거나 임의로 클램프하면 위험합니다. 순서대로 누출 원인을 찾아야 합니다.",
+ key:"흉관 지속 기포: 삽입부→연결부→WS 순서로 누출 확인. 임의 클램프 금기(긴장성 기흉 위험). 담당의 보고"}
+];
+
+// 전체 문제은행 통합
+var ALL_BANK = [].concat(ECG_ID_BANK, KNOWLEDGE_BANK, CLINICAL_BANK);
+
+var GAME_MODES = {
+  all:   {name:'전체 랜덤',size:15,pool:ALL_BANK},
+  ecg:   {name:'ECG 파형 판독',size:12,pool:ECG_ID_BANK},
+  know:  {name:'간호 지식',size:12,pool:KNOWLEDGE_BANK},
+  clin:  {name:'응급 대응',size:15,pool:CLINICAL_BANK},
+};
+
+var curMode = 'all';
+var cur=0,score=0,lives=3,answered=false,results=[],gameSet=[],timerInt=null,timeLeft=60;
+
+function shuffle(arr){var a=arr.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+function makeGameSet(mode){
+  var m=GAME_MODES[mode];
+  var shuffled=shuffle(m.pool);
+  var set=shuffled.slice(0,m.size);
+  return set.map(function(q){
+    var choices=shuffle(q.choices);
+    return Object.assign({},q,{choices:choices});
+  });
+}
+function renderLives(){
+  document.getElementById('life-display').innerHTML=
+    Array.from({length:3},function(_,i){return '<span class="life">'+(i<lives?'❤':'🖤')+'</span>';}).join('');
+}
+
+// ── ECG 드로잉 ────────────────────────────────────
+function drawECG(canvas,type,h_override){
+  if(!canvas)return;
+  var w=canvas.width=canvas.parentElement.offsetWidth-20;
+  var h=canvas.height=h_override||52;
+  var ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,w,h);
+  var mid=h/2;
+  ctx.strokeStyle=(type==='vf'||type==='stemi')&&h_override?'#FF5252':type==='vf'?'#FF5252':type==='completeavb'?'#FF9800':type==='vt'?'#F44336':type==='stemi'?'#F44336':'#00E676';
+  if(type==='afib')ctx.strokeStyle='#CE93D8';
+  if(type==='pvc')ctx.strokeStyle='#FF9800';
+  if(type==='avb1')ctx.strokeStyle='#81C784';
+  ctx.lineWidth=1.6;ctx.lineJoin='round';ctx.lineCap='round';
+  ctx.beginPath();
+  if(type==='normal'||type==='avb1'){
+    ctx.moveTo(0,mid);var x=0;var pr=type==='avb1'?12:7;
+    function nB(sx){ctx.lineTo(sx,mid);ctx.lineTo(sx+5,mid);ctx.lineTo(sx+6.5,mid-4);ctx.lineTo(sx+8,mid-5);ctx.lineTo(sx+9.5,mid-4);ctx.lineTo(sx+10.5,mid);ctx.lineTo(sx+10.5+pr,mid);ctx.lineTo(sx+11+pr,mid-2);ctx.lineTo(sx+13+pr,mid+26);ctx.lineTo(sx+14+pr,mid-17);ctx.lineTo(sx+15+pr,mid+5);ctx.lineTo(sx+16+pr,mid);ctx.lineTo(sx+19+pr,mid);ctx.lineTo(sx+21+pr,mid-7);ctx.lineTo(sx+23+pr,mid-7);ctx.lineTo(sx+25+pr,mid);ctx.lineTo(sx+44+pr,mid);}
+    while(x<w){nB(x);x+=44+pr;}
+  }else if(type==='vf'){
+    ctx.moveTo(0,mid);for(var x=0;x<w;x+=2)ctx.lineTo(x,(Math.sin(x*.3+Math.random()*.8)*(h*.42))+(Math.random()-.5)*h*.22+mid);
+  }else if(type==='afib'){
+    ctx.moveTo(0,mid);var x=0;var gaps=[28,22,34,19,26,30];var gi=0;
+    while(x<w){var g=gaps[gi%gaps.length];for(var j=0;j<g;j++)ctx.lineTo(x+j,Math.sin(j*.9+gi)*h*.1+(Math.random()-.5)*h*.06+mid);var qx=x+g;if(qx+14<w){ctx.lineTo(qx,mid);ctx.lineTo(qx+1,mid-3);ctx.lineTo(qx+2,mid+22);ctx.lineTo(qx+3,mid-13);ctx.lineTo(qx+4,mid+4);ctx.lineTo(qx+5,mid);ctx.lineTo(qx+9,mid-5);ctx.lineTo(qx+12,mid-5);ctx.lineTo(qx+14,mid);}x+=g+14;gi++;}
+  }else if(type==='tachy'){
+    ctx.moveTo(0,mid);var x=0;
+    function tB(sx){ctx.lineTo(sx,mid);ctx.lineTo(sx+4,mid);ctx.lineTo(sx+5,mid-2);ctx.lineTo(sx+7,mid+21);ctx.lineTo(sx+8,mid-13);ctx.lineTo(sx+9,mid+4);ctx.lineTo(sx+10,mid);ctx.lineTo(sx+13,mid-5);ctx.lineTo(sx+15,mid-5);ctx.lineTo(sx+16,mid);ctx.lineTo(sx+26,mid);}
+    while(x<w){tB(x);x+=26;}
+  }else if(type==='brady'){
+    ctx.moveTo(0,mid);var x=0;
+    function bB(sx){ctx.lineTo(sx,mid);ctx.lineTo(sx+6,mid);ctx.lineTo(sx+8,mid-4);ctx.lineTo(sx+10,mid);ctx.lineTo(sx+11,mid);ctx.lineTo(sx+12,mid-2);ctx.lineTo(sx+14,mid+25);ctx.lineTo(sx+15,mid-17);ctx.lineTo(sx+16,mid+5);ctx.lineTo(sx+17,mid);ctx.lineTo(sx+20,mid);ctx.lineTo(sx+22,mid-7);ctx.lineTo(sx+25,mid-7);ctx.lineTo(sx+27,mid);ctx.lineTo(sx+72,mid);}
+    while(x<w){bB(x);x+=72;}
+  }else if(type==='vt'){
+    ctx.moveTo(0,mid);var x=0;
+    while(x<w-14){ctx.lineTo(x,mid);ctx.lineTo(x+2,mid+h*.3);ctx.lineTo(x+4,mid+h*.42);ctx.lineTo(x+6,mid+h*.35);ctx.lineTo(x+8,mid-h*.2);ctx.lineTo(x+10,mid-h*.38);ctx.lineTo(x+12,mid-h*.15);ctx.lineTo(x+14,mid);x+=14;}
+  }else if(type==='pvc'){
+    ctx.moveTo(0,mid);var x=0;
+    function pn(sx){ctx.lineTo(sx,mid);ctx.lineTo(sx+8,mid);ctx.lineTo(sx+10,mid-4);ctx.lineTo(sx+12,mid);ctx.lineTo(sx+13,mid);ctx.lineTo(sx+14,mid-2);ctx.lineTo(sx+16,mid+25);ctx.lineTo(sx+17,mid-17);ctx.lineTo(sx+18,mid+5);ctx.lineTo(sx+19,mid);ctx.lineTo(sx+22,mid);ctx.lineTo(sx+24,mid-7);ctx.lineTo(sx+26,mid-7);ctx.lineTo(sx+28,mid);ctx.lineTo(sx+44,mid);}
+    pn(0);pn(44);
+    var qx=88;ctx.lineTo(qx,mid);ctx.lineTo(qx+.8,mid-h*.1);ctx.lineTo(qx+2,mid+h*.48);ctx.lineTo(qx+3.5,mid-h*.36);ctx.lineTo(qx+5.5,mid-h*.18);ctx.lineTo(qx+7.5,mid);ctx.lineTo(qx+9,mid-h*.12);ctx.lineTo(qx+12,mid-h*.14);ctx.lineTo(qx+14,mid);ctx.lineTo(qx+44,mid);
+    pn(qx+44);
+  }else if(type==='stemi'){
+    ctx.moveTo(0,mid);var x=0;
+    function stB(sx){ctx.lineTo(sx,mid);ctx.lineTo(sx+5,mid);ctx.lineTo(sx+6.5,mid-4);ctx.lineTo(sx+8,mid-5);ctx.lineTo(sx+9.5,mid-4);ctx.lineTo(sx+10.5,mid);ctx.lineTo(sx+11.5,mid);ctx.lineTo(sx+12,mid-h*.1);ctx.lineTo(sx+13,mid+h*.42);ctx.lineTo(sx+14,mid-h*.06);ctx.lineTo(sx+15,mid+h*.2);ctx.lineTo(sx+16.5,mid+h*.2);ctx.lineTo(sx+18,mid+h*.22);ctx.lineTo(sx+20,mid+h*.22);ctx.lineTo(sx+22,mid+h*.04);ctx.lineTo(sx+25,mid);ctx.lineTo(sx+34,mid);}
+    while(x<w){stB(x);x+=34;}
+  }else if(type==='completeavb'){
+    // P파(파랑)
+    ctx.setLineDash&&ctx.setLineDash([]);
+    ctx.strokeStyle='#2196F3';ctx.lineWidth=1.2;
+    var px2=0;
+    while(px2<w-8){ctx.moveTo(px2,mid);ctx.lineTo(px2+3,mid-6);ctx.lineTo(px2+5,mid-7);ctx.lineTo(px2+7,mid-6);ctx.lineTo(px2+8,mid);px2+=14;}
+    // QRS(빨강)
+    ctx.strokeStyle='#F44336';ctx.lineWidth=1.8;
+    var qx2=16,qi=0;var qgaps=[62,58,65];
+    while(qx2<w-20){ctx.moveTo(qx2,mid);ctx.lineTo(qx2+2,mid+3);ctx.lineTo(qx2+4,mid+19);ctx.lineTo(qx2+5,mid-13);ctx.lineTo(qx2+7,mid+4);ctx.lineTo(qx2+8,mid);ctx.lineTo(qx2+11,mid-5);ctx.lineTo(qx2+16,mid-5);ctx.lineTo(qx2+18,mid);qx2+=qgaps[qi%qgaps.length];qi++;}
+    ctx.stroke();return;
+  }
+  ctx.stroke();
+}
+
+// ── 모드 선택 화면 ────────────────────────────────
+function showIntro(){
+  document.getElementById('score-display').textContent='0점';
+  var modes=[
+    {key:'all',icon:'🏥',color:'#1F75FE',bg:'#EBF4FA',name:'전체 랜덤 15문제',desc:'ECG 파형 판독 + 간호 지식 + 응급 대응\n매번 다른 조합으로 출제',cnt:ALL_BANK.length},
+    {key:'ecg',icon:'📈',color:'#9C27B0',bg:'#F3E5F5',name:'ECG 파형 판독',desc:'심전도 파형을 보고 부정맥 종류 맞추기\nNSR·VF·VT·AFib·PVC·STEMI 등',cnt:ECG_ID_BANK.length},
+    {key:'know',icon:'📚',color:'#14532d',bg:'#F0FDF4',name:'간호 지식 퀴즈',desc:'투약·검사·응급 처치 지식\n입사 전 지식 측정 + 심화',cnt:KNOWLEDGE_BANK.length},
+    {key:'clin',icon:'🚨',color:'#7f1d1d',bg:'#FFF1F2',name:'응급 대응 시뮬레이션',desc:'실제 임상 케이스 기반\n환자 모니터·SBAR 포함 대응 훈련',cnt:CLINICAL_BANK.length},
+  ];
+  var cards=modes.map(function(m){
+    return '<div class="mode-card" onclick="startGame(\''+m.key+'\')">'+
+      '<div class="mode-icon" style="background:'+m.bg+'">'+m.icon+'</div>'+
+      '<div class="mode-info">'+
+        '<div class="mode-name">'+m.name+'</div>'+
+        '<div class="mode-desc">'+m.desc.replace('\n','<br>')+'</div>'+
+        '<span class="mode-badge" style="background:'+m.bg+';color:'+m.color+'">문제은행 '+m.cnt+'문제</span>'+
+      '</div>'+
+      '<i class="ti ti-chevron-right" aria-hidden="true" style="font-size:16px;color:#CBD5E1;flex-shrink:0"></i>'+
+    '</div>';
+  }).join('');
+
+  document.getElementById('main').innerHTML=
+    '<div class="mode-screen">'+
+    '<div style="font-size:36px;text-align:center;margin-bottom:8px">🏥</div>'+
+    '<div class="mode-title">25병동 간호 시뮬레이션</div>'+
+    '<div class="mode-sub">총 <strong>'+ALL_BANK.length+'문제</strong> 문제은행<br>원하는 모드를 선택하세요</div>'+
+    '<div class="bank-stat">'+
+      '<div class="stat-row-intro"><span>ECG 파형 판독</span><strong>'+ECG_ID_BANK.length+'문제</strong></div>'+
+      '<div class="stat-row-intro"><span>간호 지식 퀴즈</span><strong>'+KNOWLEDGE_BANK.length+'문제</strong></div>'+
+      '<div class="stat-row-intro"><span>응급 대응 시뮬레이션</span><strong>'+CLINICAL_BANK.length+'문제</strong></div>'+
+      '<div class="stat-row-intro" style="font-weight:700"><span>전체 합계</span><strong style="color:#1F75FE">'+ALL_BANK.length+'문제</strong></div>'+
+    '</div>'+
+    cards+
+    '</div>';
+}
+
+function startGame(mode){
+  curMode=mode||'all';
+  cur=0;score=0;lives=3;results=[];
+  gameSet=makeGameSet(curMode);
+  renderLives();showCase();
+}
+
+function startTimer(){
+  clearInterval(timerInt);timeLeft=60;
+  timerInt=setInterval(function(){
+    timeLeft--;
+    var el=document.getElementById('timer-val');
+    if(el){el.textContent=timeLeft+'초';el.className='timer-val'+(timeLeft<=10?' urgent':'');}
+    if(timeLeft<=0){clearInterval(timerInt);if(!answered)autoFail();}
+  },1000);
+}
+
+function autoFail(){
+  answered=true;lives=Math.max(0,lives-1);renderLives();
+  results.push({i:cur,ok:false,timeout:true});
+  var c=gameSet[cur];
+  if(c.type==='ecg_id'){
+    document.querySelectorAll('.wave-choice').forEach(function(b,i){b.disabled=true;if(c.choices[i].ok)b.classList.add('missed');});
+  }else{
+    document.querySelectorAll('.choice-btn').forEach(function(b,i){b.disabled=true;if(c.choices[i].ok)b.classList.add('missed');});
+  }
+  showFeedback(false,c,true);
+  if(lives<=0){clearInterval(timerInt);setTimeout(showResult,2200);}
+}
+
+function showCase(){
+  if(cur>=gameSet.length){clearInterval(timerInt);showResult();return;}
+  answered=false;
+  var c=gameSet[cur];
+  var pct=Math.round(cur/gameSet.length*100);
+  document.getElementById('score-display').textContent=score+'점';
+
+  if(c.type==='ecg_id') renderEcgCase(c,pct);
+  else if(c.type==='knowledge') renderKnowledgeCase(c,pct);
+  else renderClinicalCase(c,pct);
+  startTimer();
+}
+
+function headerBar(c,pct){
+  var diffLabel=['','','<span class="diff-badge diff-2">어려움</span>','<span class="diff-badge diff-3">매우 어려움</span>'];
+  return '<div class="progress-bar"><div class="progress-fill" style="width:'+pct+'%"></div></div>'+
+    '<div class="timer-row"><span class="timer-label"><span class="cat-chip">'+c.cat+'</span> '+cur+'/'+gameSet.length+'</span><span class="timer-val" id="timer-val">60초</span></div>';
+}
+
+function renderEcgCase(c,pct){
+  document.getElementById('main').innerHTML=
+    headerBar(c,pct)+
+    '<div class="case-card">'+
+    '<div class="case-hdr"><span class="case-hdr-title">'+c.title+'</span><span class="case-tag" style="color:'+c.tagColor+';background:'+c.tagBg+'">'+c.tag+'</span></div>'+
+    '<div class="ecg-big"><div class="ecg-label"><span>ECG MONITOR</span><span style="color:#666;font-size:9px">파형을 보고 리듬을 판독하세요</span></div><canvas id="ecg-big-cv"></canvas><div class="ecg-hint">'+c.hint+'</div></div>'+
+    '<div class="choices"><div class="choices-title">이 리듬은 무엇인가요?</div>'+
+    c.choices.map(function(ch,i){return '<button class="wave-choice" onclick="pickWave('+i+')"><span class="wave-no">'+(i+1)+'</span><span>'+ch.t+'</span></button>';}).join('')+
+    '</div></div>';
+  setTimeout(function(){var cv=document.getElementById('ecg-big-cv');if(cv)drawECG(cv,c.ecg,70);},80);
+}
+
+function renderKnowledgeCase(c,pct){
+  document.getElementById('main').innerHTML=
+    headerBar(c,pct)+
+    '<div class="case-card">'+
+    '<div class="case-hdr"><span class="case-hdr-title">'+c.title+'</span><span class="case-tag" style="color:'+c.tagColor+';background:'+c.tagBg+'">'+c.tag+'</span></div>'+
+    '<div class="situation-box"><p style="font-size:14px;font-weight:600;color:#1a2e44">'+c.situation+'</p></div>'+
+    '<div class="choices"><div class="choices-title">정답을 선택하세요</div>'+
+    c.choices.map(function(ch,i){return '<button class="choice-btn" onclick="pick('+i+')"><span class="choice-no">'+(i+1)+'</span><span>'+ch.t+'</span></button>';}).join('')+
+    '</div></div>';
+}
+
+function renderClinicalCase(c,pct){
+  var diffLabel=['','','<span class="diff-badge diff-2">어려움</span>','<span class="diff-badge diff-3">매우 어려움</span>'];
+  document.getElementById('main').innerHTML=
+    headerBar(c,pct)+
+    '<div class="case-card">'+
+    '<div class="case-hdr"><span class="case-hdr-title">'+c.title+(diffLabel[c.diff]||'')+'</span><span class="case-tag" style="color:'+c.tagColor+';background:'+c.tagBg+'">'+c.tag+'</span></div>'+
+    '<div class="patient-strip"><div class="pt-row"><div class="pt-item"><strong>'+c.patient.name+'</strong> '+c.patient.age+'</div><div class="pt-item"><strong>'+c.patient.room+'</strong></div><div class="pt-item">'+c.patient.dx+'</div></div></div>'+
+    '<div class="monitor-bg"><div class="monitor-row">'+
+    c.vitals.map(function(v){return '<div class="vital-box"><div class="vital-label">'+v.l+'</div><div class="vital-value '+v.c+'">'+v.v+'<span class="vital-unit">'+v.u+'</span></div></div>';}).join('')+
+    '</div></div>'+
+    '<div class="ecg-area"><div class="ecg-label"><span>ECG MONITOR</span></div><canvas id="ecg-cv"></canvas></div>'+
+    '<div class="situation-box"><p>'+c.situation+'</p>'+(c.nurse?'<div class="nurse-says">"'+c.nurse+'"</div>':'')+'</div>'+
+    '<div class="choices"><div class="choices-title">최선의 대응은?</div>'+
+    c.choices.map(function(ch,i){return '<button class="choice-btn" onclick="pick('+i+')"><span class="choice-no">'+(i+1)+'</span><span>'+ch.t+'</span></button>';}).join('')+
+    '</div></div>';
+  setTimeout(function(){var cv=document.getElementById('ecg-cv');if(cv)drawECG(cv,c.ecg||'normal');},80);
+}
+
+function pickWave(idx){
+  if(answered)return;
+  answered=true;clearInterval(timerInt);
+  var c=gameSet[cur];
+  var ok=c.choices[idx].ok;
+  if(ok)score+=Math.max(10,Math.round(timeLeft/60*100));
+  else lives=Math.max(0,lives-1);
+  renderLives();
+  results.push({i:cur,ok:ok,idx:idx});
+  document.getElementById('score-display').textContent=score+'점';
+  document.querySelectorAll('.wave-choice').forEach(function(b,i){
+    b.disabled=true;
+    if(c.choices[i].ok)b.classList.add('correct');
+    else if(i===idx&&!c.choices[i].ok)b.classList.add('wrong');
+  });
+  showFeedback(ok,c,false);
+  if(lives<=0){clearInterval(timerInt);setTimeout(showResult,2500);}
+}
+
+function pick(idx){
+  if(answered)return;
+  answered=true;clearInterval(timerInt);
+  var c=gameSet[cur];
+  var ok=c.choices[idx].ok;
+  if(ok)score+=Math.max(10,Math.round(timeLeft/60*100));
+  else lives=Math.max(0,lives-1);
+  renderLives();
+  results.push({i:cur,ok:ok,idx:idx});
+  document.getElementById('score-display').textContent=score+'점';
+  document.querySelectorAll('.choice-btn').forEach(function(b,i){
+    b.disabled=true;
+    if(c.choices[i].ok)b.classList.add('correct');
+    else if(i===idx&&!c.choices[i].ok)b.classList.add('wrong');
+  });
+  showFeedback(ok,c,false);
+  if(lives<=0){clearInterval(timerInt);setTimeout(showResult,2500);}
+}
+
+function showFeedback(ok,c,timeout){
+  var wrap=document.querySelector('.choices');
+  if(!wrap)return;
+  var fb=document.createElement('div');
+  fb.className='feedback-box '+(ok?'correct':'wrong');
+  fb.innerHTML=
+    (timeout?'<div class="timeout-badge">⏰ 시간 초과!</div><br>':'')+
+    '<div class="feedback-title"><i class="ti '+(ok?'ti-circle-check':'ti-circle-x')+'" aria-hidden="true" style="font-size:17px;color:'+(ok?'#4CAF50':'#F44336')+'"></i>'+(ok?'정답! 훌륭해요':'오답입니다')+'</div>'+
+    '<div class="feedback-body">'+(ok?c.okFb:c.failFb)+'</div>'+
+    '<div class="feedback-key"><i class="ti ti-bulb" aria-hidden="true" style="font-size:12px;vertical-align:-2px;margin-right:4px;color:#F59E0B"></i>핵심: '+c.key+'</div>';
+  wrap.appendChild(fb);
+  var nb=document.createElement('button');
+  nb.className='next-btn';
+  nb.innerHTML=cur<gameSet.length-1
+    ?'<i class="ti ti-arrow-right" aria-hidden="true" style="font-size:14px;vertical-align:-2px;margin-right:5px"></i>다음 문제'
+    :'<i class="ti ti-flag-3" aria-hidden="true" style="font-size:14px;vertical-align:-2px;margin-right:5px"></i>최종 결과';
+  nb.onclick=function(){cur++;showCase();};
+  wrap.appendChild(nb);
+  setTimeout(function(){fb.scrollIntoView({behavior:'smooth',block:'nearest'});},100);
+}
+
+function showResult(){
+  clearInterval(timerInt);
+  var total=gameSet.length;
+  var correct=results.filter(function(r){return r.ok;}).length;
+  var pct=Math.round(correct/total*100);
+  var grade,gc,msg;
+  if(pct>=90){grade='A+ 최우수';gc='#14532d';msg='완벽한 실력입니다! 독립 간호사로 손색없어요.';}
+  else if(pct>=75){grade='B+ 우수';gc='#1e40af';msg='대부분 올바른 판단을 했습니다. 틀린 것을 복습해보세요!';}
+  else if(pct>=50){grade='C 양호';gc='#92400E';msg='기본은 알고 있지만 우선순위가 아직 헷갈리는군요.';}
+  else{grade='D 재도전';gc='#7f1d1d';msg='교육 자료 복습 후 다시 도전해보세요!';}
+  var breakdownRows=gameSet.map(function(c,i){
+    var r=results.find(function(r){return r.i===i;});
+    var ok=r&&r.ok;
+    var cls=!r?'skip':(ok?'ok':'fail');
+    var label=!r?'미응시':(ok?'✓ 정답':(r.timeout?'⏰ 초과':'✗ 오답'));
+    return '<div class="breakdown-row"><div class="breakdown-left"><div class="breakdown-case">'+c.title+'</div>'+(!ok&&r?'<div class="breakdown-key">'+c.key+'</div>':'')+'</div><span class="breakdown-result '+cls+'">'+label+'</span></div>';
+  }).join('');
+  document.getElementById('main').innerHTML=
+    '<div class="result-screen">'+
+    '<div style="font-size:40px;margin-bottom:8px;color:#1F75FE"><i class="ti ti-award" aria-hidden="true"></i></div>'+
+    '<div class="result-score">'+score+'</div>'+
+    '<div class="result-label">최종 점수 ('+GAME_MODES[curMode].name+')</div>'+
+    '<div class="result-grade" style="color:'+gc+'">'+grade+'</div>'+
+    '<div class="result-msg">'+msg+'</div>'+
+    '<div class="stat-grid">'+
+    '<div class="stat-box"><div class="stat-n" style="color:#14532d">'+correct+'/'+total+'</div><div class="stat-l">정답</div></div>'+
+    '<div class="stat-box"><div class="stat-n" style="color:#1F75FE">'+lives+'</div><div class="stat-l">남은 하트</div></div>'+
+    '<div class="stat-box"><div class="stat-n" style="color:#92400E">'+ALL_BANK.length+'</div><div class="stat-l">전체 문제</div></div>'+
+    '</div>'+
+    '<div class="result-breakdown"><div class="breakdown-hd">이번 라운드 결과 (오답 핵심 포인트)</div>'+breakdownRows+'</div>'+
+    '<button class="restart-btn" onclick="startGame(\''+curMode+'\')"><i class="ti ti-refresh" aria-hidden="true" style="font-size:15px;vertical-align:-2px;margin-right:6px"></i>같은 모드 다시 도전</button>'+
+    '<button class="home-btn" onclick="showIntro()"><i class="ti ti-home" aria-hidden="true" style="font-size:15px;vertical-align:-2px;margin-right:6px"></i>모드 선택으로 돌아가기</button>'+
+    '</div>';
+}
+
+renderLives();
+showIntro();
+</script>
+</body>
+</html>
